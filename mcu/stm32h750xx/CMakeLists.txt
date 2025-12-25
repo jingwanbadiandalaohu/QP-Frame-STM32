@@ -1,20 +1,20 @@
 set(LIB_NAME "stm32h7xx_library")
 
 set(STM32_HAL_SRC
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c                   
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c            
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c              
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c         
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c       
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c           
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c        
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c        
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c          
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c          
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c          
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c            
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c         
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c          
 )
 
 set(STM_SYS_CORE_SRC

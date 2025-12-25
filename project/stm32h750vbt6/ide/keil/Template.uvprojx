@@ -338,7 +338,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>USE_HAL_DRIVER,STM32F103xE</Define>
+              <Define>USE_HAL_DRIVER,STM32H750xx</Define>
               <Undefine></Undefine>
               <IncludePath>..\..\..\..\mcu\stm32h750xx\STM32H7xx_HAL_Driver\Inc;..\..\..\..\mcu\stm32h750xx\CMSIS\Include;..\..\..\..\mcu\stm32h750xx\CMSIS\Device\ST\STM32H7xx\Include;..\..\usr\bsp;..\..\usr\core</IncludePath>
             </VariousControls>
