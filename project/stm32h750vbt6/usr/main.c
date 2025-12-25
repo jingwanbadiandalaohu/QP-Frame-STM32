@@ -26,9 +26,11 @@ int main(void)
   {
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
-    char str[128];
-    sprintf(str, "HELLO_H7!\r\n");
-    HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), 0xFFFF);
+    // char str[128];
+    // sprintf(str, "HELLO_H7!\r\n");
+    // HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), 0xFFFF);
+
+    printf("HELLO_H7!\r\n");
 
     HAL_Delay(1000);
   }

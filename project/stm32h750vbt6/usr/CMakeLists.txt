@@ -33,6 +33,7 @@ set(PRO_SRC
     core/stm32h7xx_hal_msp.c
     core/syscalls.c
     bsp/bsp.c
+    bsp/debug_uart.c
 )
 
 add_executable(${__PROJ_NAME__})

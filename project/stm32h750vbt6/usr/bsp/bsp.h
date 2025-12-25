@@ -1,19 +1,8 @@
-/**
- * @file bsp.h
- * @author ZC (387646983@qq.com)
- * @brief 
- * @version 0.1
- * @date 2025-08-14
- * 
- * 
- */
-
- 
 #ifndef BSP_H 
 #define BSP_H 
  
  /* ==================== [Includes] ========================================== */
- 
+ #include "debug_uart.h"
  
  
 #ifdef __cplusplus
