@@ -10,8 +10,7 @@
 #include "bsp.h"
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_uart.h"
-#include <stdio.h>
-#include <string.h>
+#include "printf.h"
 
 extern UART_HandleTypeDef huart1;
 
@@ -25,12 +24,7 @@ int main(void)
   while (1)
   {
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-
-    // char str[128];
-    // sprintf(str, "HELLO_H7!\r\n");
-    // HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), 0xFFFF);
-
-    printf("HELLO_H7!\r\n");
+    printf("HELLO_H7 %f!\r\n", 3.1415926);
 
     HAL_Delay(1000);
   }

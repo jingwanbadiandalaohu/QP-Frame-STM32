@@ -10,7 +10,6 @@
 /* ==================== [Includes] ========================================== */
 #include "debug_uart.h"
 #include "stdint.h"
-#include <stdio.h>
 
 /* ==================== [Defines] ========================================== */
 #define USARTx                           USART1
@@ -82,52 +81,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
   }
 }
 
-//printf 重定向
-
-#if defined(__CC_ARM) // ARMCC5 (Keil MDK-ARM)
-    #pragma import __use_no_semihosting
-    void _sys_exit(int x)
-    {
-        (void)x;
-    }
-    struct __FILE { int handle; };
-    FILE __stdout;
-
-    int fputc(int ch, FILE *f)
-    {
-        (void)f;
-        HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-        return ch;
-    }
-#elif defined(__ARMCC_VERSION) // Armclang/AC6
-    __asm(".global __use_no_semihosting");
-    void _sys_exit(int x)
-    {
-        (void)x;
-    }
-    FILE __stdout;
-
-    int fputc(int ch, FILE *f)
-    {
-        (void)f;
-        HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-        return ch;
-    }
-#elif defined(__GNUC__) // GCC Compiler
-    int __io_putchar(int ch)
-    {
-        HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-        return ch;
-    }
-
-    int _write(int file, char *ptr, int len)
-    {
-        (void)file;
-        for(int i=0;i<len;i++)
-        {
-           __io_putchar(*ptr++); 
-        }
-        return len;
-
-    }
-#endif
+void _putchar(char character)
+{
+  HAL_UART_Transmit(&huart1, (uint8_t *)&character, 1, 0xFFFF);
+}

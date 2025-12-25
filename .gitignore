@@ -36,6 +36,13 @@ cmake-build-debug
 CubeMx
 NN
 DSP
+.cache/
+.cache/clangd/
+.cache/clangd/index/
+project/stm32h750vbt6/usr/.cache/
+project/stm32h750vbt6/usr/.cache/clangd/
+project/stm32h750vbt6/usr/.cache/clangd/index/
+
 
 # File
 JLinkLog.txt

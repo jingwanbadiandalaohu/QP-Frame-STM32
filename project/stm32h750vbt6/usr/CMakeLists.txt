@@ -34,6 +34,7 @@ set(PRO_SRC
     core/syscalls.c
     bsp/bsp.c
     bsp/debug_uart.c
+    bsp/printf.c
 )
 
 add_executable(${__PROJ_NAME__})
