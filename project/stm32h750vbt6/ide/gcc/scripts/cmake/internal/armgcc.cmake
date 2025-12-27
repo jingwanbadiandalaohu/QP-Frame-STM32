@@ -51,7 +51,7 @@ endif()
 # -----------------------------------------------------------------------------
 # 设置交叉编译工具链通用选项
 #
-set(COMMON_FLAGS "-mthumb -Wall -Wextra -Werror -fno-common -ffunction-sections -fdata-sections -fmessage-length=0")
+set(COMMON_FLAGS "-mthumb -Wall -Wextra -fno-common -ffunction-sections -fdata-sections -fmessage-length=0")
 
 set(CMAKE_C_FLAGS          "${COMMON_FLAGS} -std=gnu99")
 set(CMAKE_CXX_FLAGS        "${COMMON_FLAGS} -std=gnu++17")

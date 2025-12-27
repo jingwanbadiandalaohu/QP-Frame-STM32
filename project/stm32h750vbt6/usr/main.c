@@ -1,32 +1,51 @@
-/**
- * @file main.c
- * @author ZC (387646983@qq.com)
- * @brief 
- * @version 0.1
- * @date 2025-08-14
- * 
- * 
- */
 #include "bsp.h"
-#include "stm32h7xx_hal.h"
-#include "stm32h7xx_hal_uart.h"
+#include "cmsis_os2.h"
 #include "printf.h"
 
-extern UART_HandleTypeDef huart1;
+void BlinkTask(void *argument);
+void PrintTask(void *argument);
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
   BSP_Init();
-  while (1)
-  {
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    printf("HELLO_H7 %f!\r\n", 3.1415926);
 
-    HAL_Delay(1000);
+  osKernelInitialize();
+
+  const osThreadAttr_t blinkTask_attributes = {
+      .name = "BlinkTask",
+      .stack_size = 128 * 4,
+      .priority = (osPriority_t)osPriorityNormal,
+  };
+  osThreadNew(BlinkTask, NULL, &blinkTask_attributes);
+
+  const osThreadAttr_t printTask_attributes = {
+      .name = "PrintTask",
+      .stack_size = 512 * 4,
+      .priority = (osPriority_t)osPriorityNormal,
+  };
+  osThreadNew(PrintTask, NULL, &printTask_attributes);
+
+  osKernelStart();
+
+  while (1) {
   }
-  /* USER CODE END 3 */
+}
+
+void BlinkTask(void *argument) {
+  (void)argument;
+  while (1) {
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    osDelay(500);
+  }
+}
+
+void PrintTask(void *argument) {
+  (void)argument;
+  while (1) {
+    printf("HELLO_H7 %f!\r\n", 3.1415926);
+    osDelay(500);
+  }
 }

@@ -35,14 +35,32 @@ set(PRO_SRC
     bsp/bsp.c
     bsp/debug_uart.c
     bsp/printf.c
+    
+    # FreeRTOS
+    ../Middlewares/Third_Party/FreeRTOS/tasks.c
+    ../Middlewares/Third_Party/FreeRTOS/queue.c
+    ../Middlewares/Third_Party/FreeRTOS/list.c
+    ../Middlewares/Third_Party/FreeRTOS/timers.c
+    ../Middlewares/Third_Party/FreeRTOS/event_groups.c
+    ../Middlewares/Third_Party/FreeRTOS/stream_buffer.c
+    ../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1/port.c
+    ../Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c
+    ../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source/cmsis_os2.c
 )
-
 add_executable(${__PROJ_NAME__})
 target_sources(${__PROJ_NAME__} PRIVATE ${PRO_SRC})
 
 target_include_directories(${__PROJ_NAME__} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/core
     ${CMAKE_CURRENT_LIST_DIR}/bsp
+    ${CMAKE_CURRENT_LIST_DIR}/bsp
+    
+    # FreeRTOS Includes
+    ${CMAKE_CURRENT_LIST_DIR}/inc
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/FreeRTOS/include
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Include
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS_5/CMSIS/RTOS2/Include
 )
 
 

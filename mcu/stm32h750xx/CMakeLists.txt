@@ -14,7 +14,7 @@ set(STM32_HAL_SRC
     STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c          
     STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c            
     STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c         
-    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c          
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c
 )
 
 set(STM_SYS_CORE_SRC
