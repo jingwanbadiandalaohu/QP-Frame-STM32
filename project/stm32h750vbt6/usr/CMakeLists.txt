@@ -37,15 +37,15 @@ set(PRO_SRC
     bsp/printf.c
     
     # FreeRTOS
-    ../Middlewares/Third_Party/FreeRTOS/tasks.c
-    ../Middlewares/Third_Party/FreeRTOS/queue.c
-    ../Middlewares/Third_Party/FreeRTOS/list.c
-    ../Middlewares/Third_Party/FreeRTOS/timers.c
-    ../Middlewares/Third_Party/FreeRTOS/event_groups.c
-    ../Middlewares/Third_Party/FreeRTOS/stream_buffer.c
-    ../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1/port.c
-    ../Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c
-    ../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source/cmsis_os2.c
+    ../Middlewares/Third_Party/FreeRTOS/tasks.c         #任务代码
+    ../Middlewares/Third_Party/FreeRTOS/queue.c         #队列代码
+    ../Middlewares/Third_Party/FreeRTOS/list.c          #列表代码
+    ../Middlewares/Third_Party/FreeRTOS/timers.c        #定时器代码
+    ../Middlewares/Third_Party/FreeRTOS/event_groups.c  #事件组代码
+    ../Middlewares/Third_Party/FreeRTOS/stream_buffer.c #流缓冲区代码
+    ../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1/port.c   #FreeRTOS针对Cortex-M7的移植文件
+    ../Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c          #FreeRTOS内存管理方案
+    ../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source/cmsis_os2.c   #CMSIS-RTOS2接口文件
 )
 add_executable(${__PROJ_NAME__})
 target_sources(${__PROJ_NAME__} PRIVATE ${PRO_SRC})
