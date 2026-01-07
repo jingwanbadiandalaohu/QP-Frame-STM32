@@ -1,6 +1,8 @@
 #include "bsp.h"
 #include "cmsis_os2.h"
 #include "printf.h"
+#include "stm32h7xx_hal.h"
+
 
 void BlinkTask(void *argument);
 void PrintTask(void *argument);
@@ -37,7 +39,8 @@ int main(void) {
 void BlinkTask(void *argument) 
 {
   (void)argument;
-  while (1) {
+  while (1)
+  {
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     osDelay(1000);
   }
@@ -46,7 +49,8 @@ void BlinkTask(void *argument)
 void PrintTask(void *argument) 
 {
   (void)argument;
-  while (1) {
+  while (1) 
+  {
     printf("HELLO_H7 %f!\r\n", 3.1415926);
     osDelay(500);
   }

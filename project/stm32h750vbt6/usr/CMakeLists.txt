@@ -31,6 +31,7 @@ set(PRO_SRC
     main.c
     core/stm32h7xx_it.c
     core/stm32h7xx_hal_msp.c
+    core/stm32h7xx_hal_timebase_tim.c
     core/syscalls.c
     bsp/bsp.c
     bsp/debug_uart.c

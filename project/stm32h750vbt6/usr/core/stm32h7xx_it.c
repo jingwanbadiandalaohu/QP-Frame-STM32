@@ -22,6 +22,7 @@
 #include "stm32h7xx_it.h"
 #include "FreeRTOS.h"
 #include "stm32h7xx_hal.h"
+#include "stm32h7xx_hal_tim.h"
 #include "task.h"
 
 
@@ -60,6 +61,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN EV */
 
@@ -178,24 +180,28 @@ void __attribute__((weak)) PendSV_Handler(void) {
  */
 extern void xPortSysTickHandler(void);
 
+/**
+ * @brief SysTick中断处理函数。
+ * 
+ * 该函数是SysTick定时器的中断服务例程（ISR），用于处理系统定时器中断。
+ * 它在每次SysTick中断触发时被调用，主要用于FreeRTOS调度器的时间片管理。
+ * 
+ * @note 该函数没有参数，也没有返回值。
+ * 
+ * 功能描述：
+ *  检查FreeRTOS调度器的状态，仅在调度器已启动时调用FreeRTOS的SysTick处理函数。
+ *  这种设计使得代码可以在裸机模式下运行而不会崩溃。
+ */
 void SysTick_Handler(void) {
-  /* USER CODE BEGIN SysTick_IRQn 0 */
-
-  /* USER CODE END SysTick_IRQn 0 */
-
-  HAL_IncTick();
-
-  /* Dual Mode: Only call FreeRTOS tick handler if scheduler is running.
-     This allows the same code to run in Bare Metal mode without crashing. */
+  /* 
+   * 检查FreeRTOS调度器是否已启动。
+   * 如果调度器未启动，则跳过调用FreeRTOS的SysTick处理函数。
+   * 这确保了代码在裸机模式下的兼容性。
+   */
   if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
     xPortSysTickHandler();
   }
 
-  HAL_SYSTICK_IRQHandler();
-
-  /* USER CODE BEGIN SysTick_IRQn 1 */
-
-  /* USER CODE END SysTick_IRQn 1 */
 }
 
 /******************************************************************************/
@@ -205,6 +211,11 @@ void SysTick_Handler(void) {
 /* please refer to the startup file (startup_stm32h750xx.s).                  */
 /******************************************************************************/
 
-/* USER CODE BEGIN 1 */
+/**
+ * @brief This function handles TIM4 global interrupt.
+ */
+void TIM4_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim4);
+}
 
-/* USER CODE END 1 */

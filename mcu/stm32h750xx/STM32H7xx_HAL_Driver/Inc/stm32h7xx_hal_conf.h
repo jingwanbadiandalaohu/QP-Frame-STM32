@@ -22,6 +22,7 @@ extern "C" {
 #define HAL_GPIO_MODULE_ENABLED
 #define HAL_PWR_MODULE_ENABLED
 #define HAL_RCC_MODULE_ENABLED
+#define HAL_TIM_MODULE_ENABLED
 #define HAL_UART_MODULE_ENABLED
 
 /* ########################## HSE/HSI Values adaptation ##################### */
@@ -123,6 +124,10 @@ extern "C" {
 #if defined(HAL_PWR_MODULE_ENABLED)
 #include "stm32h7xx_hal_pwr.h"
 #include "stm32h7xx_hal_pwr_ex.h"
+#endif
+#if defined(HAL_TIM_MODULE_ENABLED)
+#include "stm32h7xx_hal_tim.h"
+#include "stm32h7xx_hal_tim_ex.h"
 #endif
 #if defined(HAL_UART_MODULE_ENABLED)
 #include "stm32h7xx_hal_uart.h"
