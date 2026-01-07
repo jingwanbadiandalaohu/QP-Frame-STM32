@@ -34,15 +34,17 @@ int main(void) {
   }
 }
 
-void BlinkTask(void *argument) {
+void BlinkTask(void *argument) 
+{
   (void)argument;
   while (1) {
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    osDelay(500);
+    osDelay(1000);
   }
 }
 
-void PrintTask(void *argument) {
+void PrintTask(void *argument) 
+{
   (void)argument;
   while (1) {
     printf("HELLO_H7 %f!\r\n", 3.1415926);
