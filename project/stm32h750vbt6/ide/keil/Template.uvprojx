@@ -409,6 +409,11 @@
               <FilePath>..\..\..\..\mcu\stm32h750xx\CMSIS\Device\ST\STM32H7xx\Source\Templates\system_stm32h7xx.c</FilePath>
             </File>
             <File>
+              <FileName>stm32h7xx_hal_timebase_tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\core\stm32h7xx_hal_timebase_tim.c</FilePath>
+            </File>
+            <File>
               <FileName>startup_stm32h750xx.s</FileName>
               <FileType>2</FileType>
               <FilePath>..\..\..\..\mcu\stm32h750xx\CMSIS\Device\ST\STM32H7xx\Source\Templates\arm\startup_stm32h750xx.s</FilePath>
@@ -512,6 +517,16 @@
               <FileName>stm32h7xx_hal_pwr_ex.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\mcu\stm32h750xx\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_pwr_ex.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32h7xx_hal_tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\mcu\stm32h750xx\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_tim.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32h7xx_hal_tim_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\mcu\stm32h750xx\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_tim_ex.c</FilePath>
             </File>
           </Files>
         </Group>
