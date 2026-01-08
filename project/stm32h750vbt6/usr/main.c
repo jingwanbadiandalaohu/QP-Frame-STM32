@@ -11,19 +11,21 @@ void PrintTask(void *argument);
  * @brief  The application entry point.
  * @retval int
  */
-int main(void) {
+int main(void) 
+{
   BSP_Init();
-
   osKernelInitialize();
 
-  const osThreadAttr_t blinkTask_attributes = {
+  const osThreadAttr_t blinkTask_attributes = 
+  {
       .name = "BlinkTask",
       .stack_size = 128 * 4,
       .priority = (osPriority_t)osPriorityNormal,
   };
   osThreadNew(BlinkTask, NULL, &blinkTask_attributes);
 
-  const osThreadAttr_t printTask_attributes = {
+  const osThreadAttr_t printTask_attributes = 
+  {
       .name = "PrintTask",
       .stack_size = 512 * 4,
       .priority = (osPriority_t)osPriorityNormal,
@@ -32,7 +34,9 @@ int main(void) {
 
   osKernelStart();
 
-  while (1) {
+  while (1)
+  {
+
   }
 }
 
@@ -52,6 +56,6 @@ void PrintTask(void *argument)
   while (1) 
   {
     printf("HELLO_H7 %f!\r\n", 3.1415926);
-    osDelay(500);
+    osDelay(1000);
   }
 }
