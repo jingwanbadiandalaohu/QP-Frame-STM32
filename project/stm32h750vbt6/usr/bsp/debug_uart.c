@@ -10,6 +10,7 @@
 /* ==================== [Includes] ========================================== */
 #include "debug_uart.h"
 #include "stdint.h"
+#include "stm32h7xx_hal_uart.h"
 
 /* ==================== [Defines] ========================================== */
 #define USARTx                           USART1
@@ -42,6 +43,36 @@
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+static uint8_t uart1_rx_byte;
+static uint8_t uart2_rx_byte;
+static volatile uint8_t uart1_rx_ready;
+static volatile uint8_t uart2_rx_ready;
+
+__weak void debug_uart_rx_byte(UART_HandleTypeDef *huart, uint8_t byte)
+{
+  (void)huart;
+  (void)byte;
+}
+
+int debug_uart1_read(uint8_t *out)
+{
+  if (uart1_rx_ready == 0U) {
+    return 0;
+  }
+  *out = uart1_rx_byte;
+  uart1_rx_ready = 0U;
+  return 1;
+}
+
+int debug_uart2_read(uint8_t *out)
+{
+  if (uart2_rx_ready == 0U) {
+    return 0;
+  }
+  *out = uart2_rx_byte;
+  uart2_rx_ready = 0U;
+  return 1;
+}
 /**
   * @brief USART1 Initialization Function
   * @param None
@@ -58,6 +89,7 @@ void elab_debug_uart_init(uint32_t baudrate)
   huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
   HAL_UART_Init(&huart1);
+  HAL_UART_Receive_IT(&huart1, &uart1_rx_byte, 1);
 }
 
 /**
@@ -76,6 +108,7 @@ void elab_debug_uart2_init(uint32_t baudrate)
   huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   HAL_UART_Init(&huart2);
+  HAL_UART_Receive_IT(&huart2, &uart2_rx_byte, 1);
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef* huart)
@@ -103,6 +136,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     GPIO_InitStruct.Alternate = USARTx_AF;
     HAL_GPIO_Init(USARTx_PORT, &GPIO_InitStruct);
 
+    HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(USART1_IRQn);
+
     /* USER CODE BEGIN USARTx_MspInit 1 */
     /* USER CODE END USARTx_MspInit 1 */
   }
@@ -127,6 +163,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     GPIO_InitStruct.Alternate = USART2x_AF;
     HAL_GPIO_Init(USART2x_PORT, &GPIO_InitStruct);
 
+    HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
+
     /* USER CODE BEGIN USART2_MspInit 1 */
     /* USER CODE END USART2_MspInit 1 */
   }
@@ -135,4 +174,23 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 void _putchar(char character)
 {
   HAL_UART_Transmit(&huart2, (uint8_t *)&character, 1, 0xFFFF);
+}
+
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART1)
+  {
+    uart1_rx_ready = 1U;
+    debug_uart_rx_byte(huart, uart1_rx_byte);
+    HAL_UART_Receive_IT(&huart1, &uart1_rx_byte, 1);
+  }
+  else if (huart->Instance == USART2)
+  {
+    uart2_rx_ready = 1U;
+    debug_uart_rx_byte(huart, uart2_rx_byte);
+    HAL_UART_Receive_IT(&huart2, &uart2_rx_byte, 1);
+  }
+
 }

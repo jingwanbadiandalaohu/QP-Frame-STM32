@@ -1,6 +1,7 @@
 #include "bsp.h"
 #include "cmsis_os2.h"
 #include "printf.h"
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -51,16 +52,24 @@ void BlinkTask(void *argument)
 }
 
 extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
+
 
 void PrintTask(void *argument) 
 {
-  char buffer[128];
+  char buffer[64];
+  uint8_t byte;
   (void)argument;
   while (1) 
   {
-    printf("RS485_Uart2 %f!\r\n", 3.1415926);
-    sprintf(buffer, "RS232_Uart1 %f!\r\n", 3.1415926);
-    HAL_UART_Transmit(&huart1, (uint8_t *)buffer, strlen(buffer), 0xFFFF);
-    osDelay(1000);
+    if (debug_uart1_read(&byte)) {
+      int len = sprintf(buffer, "RS232_Uart1 %x\r\n", byte);
+      HAL_UART_Transmit(&huart1, (uint8_t *)buffer, (uint16_t)len, 0xFFFF);
+    }
+    if (debug_uart2_read(&byte)) {
+      int len = sprintf(buffer, "RS485_Uart2 %x\r\n", byte);
+      HAL_UART_Transmit(&huart2, (uint8_t *)buffer, (uint16_t)len, 0xFFFF);
+    }
+    osDelay(1);
   }
 }
