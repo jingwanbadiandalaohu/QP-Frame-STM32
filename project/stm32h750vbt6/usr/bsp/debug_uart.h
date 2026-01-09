@@ -15,6 +15,7 @@ extern "C"{
 
 /* ==================== [Global Prototypes] ================================== */
 void elab_debug_uart_init(uint32_t baudrate);
+void elab_debug_uart2_init(uint32_t baudrate);
 /* ==================== [Macros] ============================================ */
 
 #ifdef __cplusplus

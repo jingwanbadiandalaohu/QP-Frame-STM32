@@ -1,8 +1,8 @@
 #include "bsp.h"
 #include "cmsis_os2.h"
 #include "printf.h"
-#include "stm32h7xx_hal.h"
-
+#include <stdint.h>
+#include <string.h>
 
 void BlinkTask(void *argument);
 void PrintTask(void *argument);
@@ -50,12 +50,17 @@ void BlinkTask(void *argument)
   }
 }
 
+extern UART_HandleTypeDef huart1;
+
 void PrintTask(void *argument) 
 {
+  char buffer[128];
   (void)argument;
   while (1) 
   {
-    printf("HELLO_H7 %f!\r\n", 3.1415926);
+    printf("RS485_Uart2 %f!\r\n", 3.1415926);
+    sprintf(buffer, "RS232_Uart1 %f!\r\n", 3.1415926);
+    HAL_UART_Transmit(&huart1, (uint8_t *)buffer, strlen(buffer), 0xFFFF);
     osDelay(1000);
   }
 }
