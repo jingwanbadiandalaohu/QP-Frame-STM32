@@ -10,7 +10,7 @@
 /* ==================== [Includes] ========================================== */
 #include "debug_uart.h"
 #include "stdint.h"
-#include "stm32h7xx_hal_uart.h"
+
 
 /* ==================== [Defines] ========================================== */
 #define USARTx                           USART1

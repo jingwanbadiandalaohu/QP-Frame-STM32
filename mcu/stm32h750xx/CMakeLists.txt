@@ -5,6 +5,8 @@ set(STM32_HAL_SRC
     STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c            
     STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c              
     STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c         
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_adc.c
+    STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_adc_ex.c
     STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c       
     STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c
     STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c

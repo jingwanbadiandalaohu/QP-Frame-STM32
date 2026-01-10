@@ -17,6 +17,7 @@ extern "C" {
 #define HAL_MODULE_ENABLED
 #define HAL_CORTEX_MODULE_ENABLED
 #define HAL_DMA_MODULE_ENABLED
+#define HAL_ADC_MODULE_ENABLED
 #define HAL_EXTI_MODULE_ENABLED
 #define HAL_FLASH_MODULE_ENABLED
 #define HAL_GPIO_MODULE_ENABLED
@@ -110,6 +111,10 @@ extern "C" {
 #if defined(HAL_DMA_MODULE_ENABLED)
 #include "stm32h7xx_hal_dma.h"
 #include "stm32h7xx_hal_dma_ex.h"
+#endif
+#if defined(HAL_ADC_MODULE_ENABLED)
+#include "stm32h7xx_hal_adc.h"
+#include "stm32h7xx_hal_adc_ex.h"
 #endif
 #if defined(HAL_EXTI_MODULE_ENABLED)
 #include "stm32h7xx_hal_exti.h"

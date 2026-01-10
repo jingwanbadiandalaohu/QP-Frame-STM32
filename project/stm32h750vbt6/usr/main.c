@@ -1,4 +1,5 @@
 #include "bsp.h"
+#include "adc.h"
 #include "cmsis_os2.h"
 #include "printf.h"
 #include <stdio.h>
@@ -7,6 +8,7 @@
 
 void BlinkTask(void *argument);
 void PrintTask(void *argument);
+void AdcPrintTask(void *argument);
 
 /**
  * @brief  The application entry point.
@@ -32,6 +34,14 @@ int main(void)
       .priority = (osPriority_t)osPriorityNormal,
   };
   osThreadNew(PrintTask, NULL, &printTask_attributes);
+
+  const osThreadAttr_t adcPrintTask_attributes =
+  {
+      .name = "AdcPrintTask",
+      .stack_size = 1024 * 4,
+      .priority = (osPriority_t)osPriorityBelowNormal,
+  };
+  osThreadNew(AdcPrintTask, NULL, &adcPrintTask_attributes);
 
   osKernelStart();
 
@@ -71,5 +81,22 @@ void PrintTask(void *argument)
       HAL_UART_Transmit(&huart2, (uint8_t *)buffer, (uint16_t)len, 0xFFFF);
     }
     osDelay(1);
+  }
+}
+
+void AdcPrintTask(void *argument)
+{
+  (void)argument;
+  const float vref = 3.3f;
+  const float scale = vref / 65535.0f;
+  while (1) {
+    uint16_t adc1_raw = g_adc1_dma_buffer[0];
+    uint16_t adc2_raw = g_adc2_dma_buffer[0];
+    float adc1_v = adc1_raw * scale;
+    float adc2_v = adc2_raw * scale;
+    printf("ADC1 raw=%u, V=%.3f; ADC2 raw=%u, V=%.3f\r\n",
+           (unsigned)adc1_raw, adc1_v, (unsigned)adc2_raw, adc2_v);
+    osDelay(1000);
+    // printf("%d\n", g_adc1_dma_buffer[0]); 
   }
 }

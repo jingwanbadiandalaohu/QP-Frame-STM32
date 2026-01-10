@@ -3,6 +3,7 @@
  
  /* ==================== [Includes] ========================================== */
  #include "debug_uart.h"
+ #include "adc.h"
  
  
 #ifdef __cplusplus

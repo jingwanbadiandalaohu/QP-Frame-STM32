@@ -34,6 +34,7 @@ set(PRO_SRC
     core/stm32h7xx_hal_timebase_tim.c
     core/syscalls.c
     bsp/bsp.c
+    bsp/adc.c
     bsp/debug_uart.c
     bsp/printf.c
     
