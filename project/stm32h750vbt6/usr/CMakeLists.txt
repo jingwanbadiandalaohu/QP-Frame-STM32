@@ -1,22 +1,30 @@
-set(__PROJ_NAME__ "Template" CACHE STRING "Proj name")
+# 工程/芯片/工具链的基础配置（缓存变量，便于GUI/ccmake修改）
+set(__PROJ_NAME__ "Template" CACHE STRING "Project name")
 set(__CHIP_TYPE__ "STM32H750vbt6" CACHE STRING "Chip type")
 set(__TOOLCHAIN__ "ARMGCC" CACHE STRING "Toolchain type")
 
+# 产物输出路径与文件名
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output)
 set(HEX_FILE ${EXECUTABLE_OUTPUT_PATH}/${__PROJ_NAME__}.hex)
 set(BIN_FILE ${EXECUTABLE_OUTPUT_PATH}/${__PROJ_NAME__}.bin)
 set(MAP_FILE ${EXECUTABLE_OUTPUT_PATH}/${__PROJ_NAME__}.map)
 
+# CMake 最低版本要求
 cmake_minimum_required(VERSION 3.20)
 
 #设置交叉编译工具配置文件
+# 交叉编译工具链配置（ARM GCC）
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/../ide/gcc/scripts/cmake/armgcc_cm7.cmake")
 
 
+# 生成 compile_commands.json，便于IDE/静态分析工具使用
+# 这对 VS Code, CLion 等 IDE 非常有用，能让代码补全和跳转更准确。
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# 定义工程与支持的语言
 project(${__PROJ_NAME__} C CXX ASM)
 
+# 构建类型默认使用 Debug，并限制可选项
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
@@ -25,8 +33,10 @@ endif()
 
 # -----------------------------------------------------------------------------
 
+# 引入芯片库（HAL/CMSIS等），并指定其构建目录
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../../mcu/stm32h750xx ${CMAKE_CURRENT_BINARY_DIR}/stm32h7xx_library)
 
+# 工程源码列表（应用 + BSP + FreeRTOS）
 set(PRO_SRC
     main.c
     core/stm32h7xx_it.c
@@ -49,9 +59,11 @@ set(PRO_SRC
     ../Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c          #FreeRTOS内存管理方案
     ../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source/cmsis_os2.c   #CMSIS-RTOS2接口文件
 )
+# 定义可执行目标并添加PRO_SRC源码
 add_executable(${__PROJ_NAME__})
 target_sources(${__PROJ_NAME__} PRIVATE ${PRO_SRC})
 
+# 头文件搜索路径
 target_include_directories(${__PROJ_NAME__} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/core
     ${CMAKE_CURRENT_LIST_DIR}/bsp
@@ -66,6 +78,7 @@ target_include_directories(${__PROJ_NAME__} PRIVATE
 )
 
 
+# 链接芯片库目标
 target_link_libraries(${__PROJ_NAME__} PRIVATE "stm32h7xx_library")
 
 #生成map文件

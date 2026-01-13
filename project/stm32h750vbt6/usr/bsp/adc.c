@@ -25,17 +25,21 @@ void BSP_ADC_Init(void)
   MX_ADC1_Init();
   MX_ADC2_Init();
 
-  if (HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK) {
+  if(HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
     Error_Handler();
   }
-  if (HAL_ADCEx_Calibration_Start(&hadc2, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK) {
+  if(HAL_ADCEx_Calibration_Start(&hadc2, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
     Error_Handler();
   }
 
-  if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)g_adc1_dma_buffer, ADC1_DMA_BUFFER_LENGTH) != HAL_OK) {
+  if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)g_adc1_dma_buffer, ADC1_DMA_BUFFER_LENGTH) != HAL_OK)
+  {
     Error_Handler();
   }
-  if (HAL_ADC_Start_DMA(&hadc2, (uint32_t *)g_adc2_dma_buffer, ADC2_DMA_BUFFER_LENGTH) != HAL_OK) {
+  if(HAL_ADC_Start_DMA(&hadc2, (uint32_t *)g_adc2_dma_buffer, ADC2_DMA_BUFFER_LENGTH) != HAL_OK)
+  {
     Error_Handler();
   }
 }
@@ -45,7 +49,7 @@ static void MX_ADC1_Init(void)
   ADC_ChannelConfTypeDef sConfig = {0};
 
   hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV16;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc1.Init.Resolution = ADC_RESOLUTION_16B;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
@@ -64,27 +68,29 @@ static void MX_ADC1_Init(void)
   hadc1.Init.Oversampling.RightBitShift = 0;
   hadc1.Init.Oversampling.TriggeredMode = 0;
   hadc1.Init.Oversampling.OversamplingStopReset = 0;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK) {
+  if(HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
     Error_Handler();
   }
 
   sConfig.Channel = ADC_CHANNEL_5;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_64CYCLES_5;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.Rank = ADC_REGULAR_RANK_1;    
+  sConfig.SamplingTime = ADC_SAMPLETIME_387CYCLES_5;  // 387.5 cycles for ~100 kSPS (matching ADS8320)
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;              // 采样率126 kSPS
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+  if(HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
     Error_Handler();
   }
 }
 
-static void MX_ADC2_Init(void) 
+static void MX_ADC2_Init(void)
 {
   ADC_ChannelConfTypeDef sConfig = {0};
 
   hadc2.Instance = ADC2;
-  hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV16;
+  hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc2.Init.Resolution = ADC_RESOLUTION_16B;
   hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
@@ -103,7 +109,8 @@ static void MX_ADC2_Init(void)
   hadc2.Init.Oversampling.RightBitShift = 0;
   hadc2.Init.Oversampling.TriggeredMode = 0;
   hadc2.Init.Oversampling.OversamplingStopReset = 0;
-  if (HAL_ADC_Init(&hadc2) != HAL_OK) {
+  if(HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
     Error_Handler();
   }
 
@@ -113,16 +120,17 @@ static void MX_ADC2_Init(void)
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK) {
+  if(HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
     Error_Handler();
   }
 }
 
-void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) 
+void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  if (hadc->Instance == ADC1)
+  if(hadc->Instance == ADC1)
   {
     __HAL_RCC_ADC12_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
@@ -143,12 +151,13 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
     hdma_adc1.Init.Mode = DMA_CIRCULAR;
     hdma_adc1.Init.Priority = DMA_PRIORITY_HIGH;
     hdma_adc1.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    if (HAL_DMA_Init(&hdma_adc1) != HAL_OK) {
+    if(HAL_DMA_Init(&hdma_adc1) != HAL_OK)
+    {
       Error_Handler();
     }
     __HAL_LINKDMA(hadc, DMA_Handle, hdma_adc1);
-  } 
-  else if (hadc->Instance == ADC2)
+  }
+  else if(hadc->Instance == ADC2)
   {
     __HAL_RCC_ADC12_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -169,27 +178,86 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
     hdma_adc2.Init.Mode = DMA_CIRCULAR;
     hdma_adc2.Init.Priority = DMA_PRIORITY_HIGH;
     hdma_adc2.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    if (HAL_DMA_Init(&hdma_adc2) != HAL_OK) {
+    if(HAL_DMA_Init(&hdma_adc2) != HAL_OK)
+    {
       Error_Handler();
     }
     __HAL_LINKDMA(hadc, DMA_Handle, hdma_adc2);
-  } 
-  else {
+  }
+  else
+  {
   }
 }
 
-void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc) 
+void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc)
 {
-  if (hadc->Instance == ADC1) 
+  if(hadc->Instance == ADC1)
   {
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_1);
     HAL_DMA_DeInit(hadc->DMA_Handle);
-  } 
-  else if (hadc->Instance == ADC2) 
+  }
+  else if(hadc->Instance == ADC2)
   {
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_6);
     HAL_DMA_DeInit(hadc->DMA_Handle);
-  } 
-  else{
+  }
+  else
+  {
   }
 }
+
+
+
+// ================================ 移动平均滤波 ================================
+// 实现细节    输入:将新数据存入缓冲区
+//             输出:输出缓冲区内的平均值
+
+uint16_t MAF_Update(MovingAverageFilter* filter, uint16_t new_data)
+{
+  // 减去最旧数据
+  filter->sum -= filter->buffer[filter->index];
+  
+  // 添加新数据
+  filter->buffer[filter->index] = new_data;
+  filter->sum += new_data;
+  
+  // 更新索引（使用位运算替代模运算）
+  filter->index = (filter->index + 1) & MAF_WINDOW_MASK;
+  
+  // 返回平均值（使用位移替代除法）
+  return (uint16_t)(filter->sum >> 4); // 等价于 sum / 16（当 WINDOW_SIZE = 16）
+}
+
+
+// =============================== 滑动加权滤波 ================================
+// 实现细节    在移动平均滤波上加入权重，越新的数据权重越大，越旧的数据权重越小
+//             输入:将新数据存入缓冲区
+//             输出:输出缓冲区内的加权和的平均值
+
+
+uint16_t WMAF_Update(WeightedMovingAverageFilter* filter, uint16_t new_data)
+{
+  // 存储新数据
+  filter->buffer[filter->index] = new_data;
+  
+  // 更新索引
+  filter->index = (filter->index + 1) & WMAF_WINDOW_MASK;
+  
+  // 重新计算加权和
+  filter->weighted_sum = 0;
+  for (uint8_t i = 0; i < WMAF_WINDOW_SIZE; i++)
+  {
+    // 直接计算数据在缓冲区中的实际位置
+    // i=0对应最新数据，i=15对应最旧数据
+    int data_index = (filter->index - 1 - i + WMAF_WINDOW_SIZE) & WMAF_WINDOW_MASK;
+    
+    // weighted_sum得到16位数据的权重和,i直接作为权重索引，i=0是最新数据，对应权重WEIGHTS[0]=16
+    filter->weighted_sum += filter->buffer[data_index] * WMAF_WEIGHTS[i];
+  }
+    
+    return (uint16_t)(filter->weighted_sum / WMAF_WEIGHT_SUM);
+}
+
+
+
+

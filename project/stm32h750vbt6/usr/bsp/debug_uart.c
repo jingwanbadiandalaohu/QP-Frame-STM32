@@ -56,7 +56,8 @@ __weak void debug_uart_rx_byte(UART_HandleTypeDef *huart, uint8_t byte)
 
 int debug_uart1_read(uint8_t *out)
 {
-  if (uart1_rx_ready == 0U) {
+  if(uart1_rx_ready == 0U)
+  {
     return 0;
   }
   *out = uart1_rx_byte;
@@ -66,7 +67,8 @@ int debug_uart1_read(uint8_t *out)
 
 int debug_uart2_read(uint8_t *out)
 {
-  if (uart2_rx_ready == 0U) {
+  if(uart2_rx_ready == 0U)
+  {
     return 0;
   }
   *out = uart2_rx_byte;
@@ -115,7 +117,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  if (huart->Instance == USARTx)
+  if(huart->Instance == USARTx)
   {
     USARTx_CLK_ENABLE();
     USARTx_GPIO_CLK_ENABLE();
@@ -142,7 +144,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     /* USER CODE BEGIN USARTx_MspInit 1 */
     /* USER CODE END USARTx_MspInit 1 */
   }
-  else if (huart->Instance == USART2x)
+  else if(huart->Instance == USART2x)
   {
     USART2x_CLK_ENABLE();
     USART2x_GPIO_CLK_ENABLE();
@@ -180,17 +182,16 @@ void _putchar(char character)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-  if (huart->Instance == USART1)
+  if(huart->Instance == USART1)
   {
     uart1_rx_ready = 1U;
     debug_uart_rx_byte(huart, uart1_rx_byte);
     HAL_UART_Receive_IT(&huart1, &uart1_rx_byte, 1);
   }
-  else if (huart->Instance == USART2)
+  else if(huart->Instance == USART2)
   {
     uart2_rx_ready = 1U;
     debug_uart_rx_byte(huart, uart2_rx_byte);
     HAL_UART_Receive_IT(&huart2, &uart2_rx_byte, 1);
   }
-
 }

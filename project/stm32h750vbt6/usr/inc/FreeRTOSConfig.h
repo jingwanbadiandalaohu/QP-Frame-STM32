@@ -47,27 +47,28 @@
 extern uint32_t SystemCoreClock;
 #endif
 
-#define configUSE_PREEMPTION 1
-#define configUSE_IDLE_HOOK 0
-#define configUSE_TICK_HOOK 0
-#define configCPU_CLOCK_HZ (SystemCoreClock)
-#define configTICK_RATE_HZ ((TickType_t)1000)
-#define configMAX_PRIORITIES (56)
-#define configMINIMAL_STACK_SIZE ((uint16_t)256)
-#define configTOTAL_HEAP_SIZE ((size_t)(64 * 1024))
-#define configMAX_TASK_NAME_LEN (16)
-#define configUSE_TRACE_FACILITY 1
-#define configUSE_16_BIT_TICKS 0
-#define configIDLE_SHOULD_YIELD 1
-#define configUSE_MUTEXES 1
-#define configQUEUE_REGISTRY_SIZE 8
-#define configCHECK_FOR_STACK_OVERFLOW 0
-#define configUSE_RECURSIVE_MUTEXES 1
-#define configUSE_MALLOC_FAILED_HOOK 0
-#define configUSE_APPLICATION_TASK_TAG 0
-#define configUSE_COUNTING_SEMAPHORES 1
-#define configGENERATE_RUN_TIME_STATS 0
-#define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
+#define configUSE_PREEMPTION 1                      // 使用抢占式调度
+#define configUSE_TIME_SLICING 1                    // 使用时间片轮转调度(同优先级任务启用时间片轮转)
+#define configUSE_IDLE_HOOK 0                       // 空闲任务钩子
+#define configUSE_TICK_HOOK 0                       // 滴答定时器钩子
+#define configCPU_CLOCK_HZ (SystemCoreClock)        // 系统时钟频率
+#define configTICK_RATE_HZ ((TickType_t)1000)       // 滴答定时器频率
+#define configMAX_PRIORITIES (56)                   // 最大优先级数
+#define configMINIMAL_STACK_SIZE ((uint16_t)256)    // 最小堆栈大小
+#define configTOTAL_HEAP_SIZE ((size_t)(64 * 1024)) // 总堆栈大小
+#define configMAX_TASK_NAME_LEN (16)                // 任务名称长度
+#define configUSE_TRACE_FACILITY 1                  // 使用跟踪功能
+#define configUSE_16_BIT_TICKS 0                    // 使用16位滴答定时器
+#define configIDLE_SHOULD_YIELD 1                   // 空闲任务应该让出CPU时间
+#define configUSE_MUTEXES 1                         // 使用互斥量
+#define configQUEUE_REGISTRY_SIZE 8                 // 队列注册大小
+#define configCHECK_FOR_STACK_OVERFLOW 0            // 检查堆栈溢出
+#define configUSE_RECURSIVE_MUTEXES 1               // 使用递归互斥量
+#define configUSE_MALLOC_FAILED_HOOK 0              // 使用内存分配失败钩子
+#define configUSE_APPLICATION_TASK_TAG 0            // 使用应用程序任务标签
+#define configUSE_COUNTING_SEMAPHORES 1             // 使用计数信号量
+#define configGENERATE_RUN_TIME_STATS 0             // 生成运行时统计信息
+#define configUSE_PORT_OPTIMISED_TASK_SELECTION 0   // 使用端口优化任务选择
 
 /* Software timer definitions. */
 #define configUSE_TIMERS 1

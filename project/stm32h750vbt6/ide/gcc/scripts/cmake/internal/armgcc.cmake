@@ -63,11 +63,24 @@ set(CMAKE_CXX_FLAGS        "${COMMON_FLAGS} -std=gnu++17")
 set(CMAKE_ASM_FLAGS        "${COMMON_FLAGS} -x assembler-with-cpp")
 set(CMAKE_EXE_LINKER_FLAGS "-mthumb -static -Wl,--gc-sections,--cref -Wl,--print-memory-usage --specs=nano.specs --specs=nosys.specs" CACHE INTERNAL "Linker options")
 
+# -g 参数：控制调试信息的密度
+# g 代表 Debug Information。它不影响代码运行速度，只影响生成的 .elf 或 .exe 文件里包含多少“调试元数据”。
+# -g0：完全不生成调试信息。发布正式产品时使用，防止代码被反编译，且减小文件体积。
+# -g1：只生成最基本的调试信息（能看回溯栈）。
+# -g2：标准等级。
+# -g3：最高等级。不仅包含变量信息，还包含宏定义等额外信息。你在 Debug 配置里看到它，说明它是为了让你在调试时能看清每一行代码和宏。
+
+# -O 参数：控制优化等级
+# O 代表 Optimization。它直接影响代码的机器码执行逻辑。
+# -Og：专为调试设计的优化。它会尝试进行不干扰调试的性能优化。它保证了你在单步执行时，代码运行的顺序和你在编辑器里看到的一模一样。
+# -Os：尺寸优化（Optimize for Size）。这是嵌入式开发最常用的。它会尽可能减小生成的代码体积，以适应内存较小的芯片（如 Flash 空间不足时）。
+# -O0：完全不优化。
+# -O2 / -O3：追求极限速度优化。
 
 # -----------------------------------------------------------------------------
 # 设置 Debug 构建模式选项
 # 以 -Og 为主、保留调试信息，便于单步与变量查看
-#
+# 
 set(CMAKE_C_FLAGS_DEBUG          "-Og -g3" CACHE INTERNAL "C Compiler options for debug build type")
 set(CMAKE_CXX_FLAGS_DEBUG        "-Og -g3" CACHE INTERNAL "C++ Compiler options for debug build type")
 set(CMAKE_ASM_FLAGS_DEBUG        "-g3"     CACHE INTERNAL "ASM Compiler options for debug build type")
