@@ -44,9 +44,13 @@ set(PRO_SRC
     core/stm32h7xx_hal_timebase_tim.c
     core/syscalls.c
     bsp/bsp.c
-    bsp/adc.c
-    bsp/debug_uart.c
-    bsp/printf.c
+    bsp/bsp_adc.c
+    bsp/bsp_adcfilter.c
+    bsp/bsp_uart.c
+    bsp/bsp_gpio.c
+
+    # Printf
+    ../Middlewares/Third_Party/printf/printf.c
     
     # FreeRTOS
     ../Middlewares/Third_Party/FreeRTOS/tasks.c         #任务代码
@@ -69,6 +73,9 @@ target_include_directories(${__PROJ_NAME__} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/bsp
     ${CMAKE_CURRENT_LIST_DIR}/bsp
     
+    # Printf Includes
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/Printf
+
     # FreeRTOS Includes
     ${CMAKE_CURRENT_LIST_DIR}/inc
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/FreeRTOS/include

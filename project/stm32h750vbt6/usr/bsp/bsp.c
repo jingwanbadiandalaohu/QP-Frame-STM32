@@ -1,19 +1,5 @@
-/* ==================== [Includes] ========================================== */
 #include "bsp.h"
-#include "stm32h7xx_hal.h"
-/* ==================== [Defines] ========================================== */
 
-/* ==================== [Macros] ============================================ */
-
-/* ==================== [Typedefs] ========================================== */
-
-/* ==================== [Static Prototypes]
- * ========================================== */
-
-/* ==================== [Static Variables]
- * ========================================== */
-
-/* ==================== [Static Functions] ================================== */
 
 /**
  * @brief  This function is executed in case of error occurrence.
@@ -27,34 +13,6 @@ void Error_Handler(void)
   }
 }
 
-/**
- * @brief GPIO Initialization Function
- * @param None
- * @retval None
- */
-static void MX_GPIO_Init(void)
-{
-  __HAL_RCC_GPIOE_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /* PC13 as output for LED */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-  /* PE11 as output for LED */
-  GPIO_InitStruct.Pin = GPIO_PIN_11;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_11, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-}
 
 /**
  * @brief System Clock Configuration
@@ -129,18 +87,13 @@ void SystemClock_Config(void)
 }
 
 
-uint32_t elab_time_ms(void)
-{
-  return HAL_GetTick();
-}
-
 /* ==================== [Public Functions] ================================== */
 void BSP_Init(void)
 {
   HAL_Init();
   SystemClock_Config();
-  elab_debug_uart_init(115200);
-  elab_debug_uart2_init(115200);
+  MX_Uart1_Init(115200);
+  MX_Uart2_Init(115200);
   MX_GPIO_Init();
   BSP_ADC_Init();
 }

@@ -1,8 +1,8 @@
-#include "adc.h"
-#include "stm32h7xx_hal.h"
+#include "bsp_adc.h"
 
-// ADC1 - PA5 - ADC_CHANNEL_5 - DMA1_Stream0 - 采集井下板数据
-// ADC2 - PB1 - ADC_CHANNEL_3 - DMA1_Stream1 - 采集星点电压
+
+// ADC1 - PB1 - ADC_CHANNEL_5 - DMA1_Stream0 - 采集井下板数据
+// ADC2 - PA6 - ADC_CHANNEL_3 - DMA1_Stream1 - 采集星点电压
 
 extern void Error_Handler(void);
 
@@ -208,55 +208,7 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc)
 
 
 
-// ================================ 移动平均滤波 ================================
-// 实现细节    输入:将新数据存入缓冲区
-//             输出:输出缓冲区内的平均值
 
-uint16_t MAF_Update(MovingAverageFilter* filter, uint16_t new_data)
-{
-  // 减去最旧数据
-  filter->sum -= filter->buffer[filter->index];
-  
-  // 添加新数据
-  filter->buffer[filter->index] = new_data;
-  filter->sum += new_data;
-  
-  // 更新索引（使用位运算替代模运算）
-  filter->index = (filter->index + 1) & MAF_WINDOW_MASK;
-  
-  // 返回平均值（使用位移替代除法）
-  return (uint16_t)(filter->sum >> 4); // 等价于 sum / 16（当 WINDOW_SIZE = 16）
-}
-
-
-// =============================== 滑动加权滤波 ================================
-// 实现细节    在移动平均滤波上加入权重，越新的数据权重越大，越旧的数据权重越小
-//             输入:将新数据存入缓冲区
-//             输出:输出缓冲区内的加权和的平均值
-
-
-uint16_t WMAF_Update(WeightedMovingAverageFilter* filter, uint16_t new_data)
-{
-  // 存储新数据
-  filter->buffer[filter->index] = new_data;
-  
-  // 更新索引
-  filter->index = (filter->index + 1) & WMAF_WINDOW_MASK;
-  
-  // 重新计算加权和
-  filter->weighted_sum = 0;
-  for (uint8_t i = 0; i < WMAF_WINDOW_SIZE; i++)
-  {
-    // 直接计算数据在缓冲区中的实际位置
-    // i=0对应最新数据，i=15对应最旧数据
-    int data_index = (filter->index - 1 - i + WMAF_WINDOW_SIZE) & WMAF_WINDOW_MASK;
-    
-    // weighted_sum得到16位数据的权重和,i直接作为权重索引，i=0是最新数据，对应权重WEIGHTS[0]=16
-    filter->weighted_sum += filter->buffer[data_index] * WMAF_WEIGHTS[i];
-  }
-    
-    return (uint16_t)(filter->weighted_sum / WMAF_WEIGHT_SUM);
-}
 
 
 

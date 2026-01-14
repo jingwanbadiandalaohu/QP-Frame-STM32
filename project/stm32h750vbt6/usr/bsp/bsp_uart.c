@@ -1,44 +1,4 @@
-/**
- * @file debug_uart.c
- * @author dylan
- * @brief 
- * @version 0.1
- * @date 2026-1-8
- * 
- * 
- */
-/* ==================== [Includes] ========================================== */
-#include "debug_uart.h"
-#include "stdint.h"
-
-
-/* ==================== [Defines] ========================================== */
-#define USARTx                           USART1
-#define USARTx_CLK_ENABLE()              __HAL_RCC_USART1_CLK_ENABLE()
-#define USARTx_GPIO_CLK_ENABLE()         __HAL_RCC_GPIOA_CLK_ENABLE()
-#define USARTx_TX_PIN                    GPIO_PIN_9
-#define USARTx_RX_PIN                    GPIO_PIN_10
-#define USARTx_PORT                      GPIOA
-#define USARTx_AF                        GPIO_AF7_USART1
-
-#define USART2x                          USART2
-#define USART2x_CLK_ENABLE()             __HAL_RCC_USART2_CLK_ENABLE()
-#define USART2x_GPIO_CLK_ENABLE()        __HAL_RCC_GPIOA_CLK_ENABLE()
-#define USART2x_TX_PIN                   GPIO_PIN_2
-#define USART2x_RX_PIN                   GPIO_PIN_3
-#define USART2x_PORT                     GPIOA
-#define USART2x_AF                       GPIO_AF7_USART2
-/* ==================== [Macros] ============================================ */
-
-/* ==================== [Typedefs] ========================================== */
-
-/* ==================== [Static Prototypes] ========================================== */
-
-/* ==================== [Static Variables] ========================================== */
-
-/* ==================== [Static Functions] ================================== */
-
-/* ==================== [Public Functions] ================================== */
+#include "bsp_uart.h"
 
 
 UART_HandleTypeDef huart1;
@@ -48,11 +8,6 @@ static uint8_t uart2_rx_byte;
 static volatile uint8_t uart1_rx_ready;
 static volatile uint8_t uart2_rx_ready;
 
-__weak void debug_uart_rx_byte(UART_HandleTypeDef *huart, uint8_t byte)
-{
-  (void)huart;
-  (void)byte;
-}
 
 int debug_uart1_read(uint8_t *out)
 {
@@ -80,7 +35,7 @@ int debug_uart2_read(uint8_t *out)
   * @param None
   * @retval None
   */
-void elab_debug_uart_init(uint32_t baudrate)    
+void MX_Uart1_Init(uint32_t baudrate)    
 {
   huart1.Instance = USARTx;
   huart1.Init.BaudRate = baudrate;
@@ -99,7 +54,7 @@ void elab_debug_uart_init(uint32_t baudrate)
   * @param None
   * @retval None
   */
-void elab_debug_uart2_init(uint32_t baudrate)
+void MX_Uart2_Init(uint32_t baudrate)
 {
   huart2.Instance = USART2x;
   huart2.Init.BaudRate = baudrate;
@@ -185,13 +140,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   if(huart->Instance == USART1)
   {
     uart1_rx_ready = 1U;
-    debug_uart_rx_byte(huart, uart1_rx_byte);
     HAL_UART_Receive_IT(&huart1, &uart1_rx_byte, 1);
   }
   else if(huart->Instance == USART2)
   {
     uart2_rx_ready = 1U;
-    debug_uart_rx_byte(huart, uart2_rx_byte);
     HAL_UART_Receive_IT(&huart2, &uart2_rx_byte, 1);
   }
 }

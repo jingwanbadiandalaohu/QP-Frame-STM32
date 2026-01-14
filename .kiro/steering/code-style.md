@@ -55,7 +55,7 @@ void MyFunction(void)
 
 ## 安全编码
 - 使用 `snprintf` 代替 `sprintf` (防止缓冲区溢出)
-- 避免魔数，用 `const` 或 `#define` 定义常量
+<!-- - 避免魔数，用 `const` 或 `#define` 定义常量 -->
 - 指针初始化为 `NULL`
 - 局部变量在声明时初始化
 - 硬件寄存器和中断共享变量必须使用 `volatile`

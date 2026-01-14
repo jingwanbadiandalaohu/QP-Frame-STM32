@@ -1,11 +1,4 @@
 #include "bsp.h"
-#include "adc.h"
-#include "bsp/adc.h"
-#include "cmsis_os2.h"
-#include "printf.h"
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
 
 void BlinkTask(void *argument);
 void PrintTask(void *argument);
@@ -105,7 +98,9 @@ void AdcPrintTask(void *argument)
     // float adc2_v = adc2_raw * scale;
     // printf("ADC1 raw=%u, V=%.3f; ADC2 raw=%u, V=%.3f\r\n",
     //        (unsigned)adc1_raw, adc1_v, (unsigned)adc2_raw, adc2_v);
-    // osDelay(1000);
+     osDelay(1000);
+
+    //打印波形
     adcx = MAF_Update(&adc_filter_1, g_adc1_dma_buffer[0]);
     adcx2 = WMAF_Update(&adc_filter_2, adcx);
     //printf("%d\n", adcx);
