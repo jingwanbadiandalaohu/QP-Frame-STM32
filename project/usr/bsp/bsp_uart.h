@@ -20,8 +20,8 @@ int debug_uart1_read(uint8_t *out);
 int debug_uart2_read(uint8_t *out);
 
 /* 获取 UART 句柄 (供驱动层使用) */
-UART_Handle_t BSP_GetUart1Handle(void);
-UART_Handle_t BSP_GetUart2Handle(void);
+UART_Device_t *BSP_GetUart1Handle(void);
+UART_Device_t *BSP_GetUart2Handle(void);
 
 #ifdef __cplusplus
 }

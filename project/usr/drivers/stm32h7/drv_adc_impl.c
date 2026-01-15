@@ -1,19 +1,17 @@
 /**
  * @file drv_adc_impl.c
- * @brief STM32H7 平台 ADC 驱动实现
+ * @brief STM32H7 ADC driver implementation
  */
 
 #include "drv_adc.h"
 #include "platform_config.h"
 
-/* ==================== 平台 ADC 配置 ==================== */
 #define ADC1_INSTANCE                ADC1
 #define ADC2_INSTANCE                ADC2
 
 #define ADC1_CHANNEL                 ADC_CHANNEL_5
 #define ADC2_CHANNEL                 ADC_CHANNEL_3
 
-/* ==================== 内部数据结构 ==================== */
 typedef struct
 {
   ADC_HandleTypeDef hal_handle;
@@ -21,11 +19,12 @@ typedef struct
   uint16_t *dma_buffer;
   uint16_t buffer_len;
   uint8_t initialized;
-} ADC_Instance_t;
+} ADC_Private_t;
 
-static ADC_Instance_t s_adc_instances[DRV_ADC_MAX] = {0};
+static ADC_Private_t s_adc1_private = {0};
+static ADC_Private_t s_adc2_private = {0};
 
-static ADC_Instance_t *DRV_ADC_GetInstanceByHandle(ADC_HandleTypeDef *hadc)
+static ADC_Private_t *drv_adc_private_from_hal(ADC_HandleTypeDef *hadc)
 {
   if(hadc == NULL)
   {
@@ -34,17 +33,27 @@ static ADC_Instance_t *DRV_ADC_GetInstanceByHandle(ADC_HandleTypeDef *hadc)
 
   if(hadc->Instance == ADC1_INSTANCE)
   {
-    return &s_adc_instances[DRV_ADC1];
+    return &s_adc1_private;
   }
   if(hadc->Instance == ADC2_INSTANCE)
   {
-    return &s_adc_instances[DRV_ADC2];
+    return &s_adc2_private;
   }
 
   return NULL;
 }
 
-static uint32_t DRV_ADC_MapResolution(DRV_ADC_Resolution_t resolution)
+static ADC_Private_t *drv_adc_private_from_dev(ADC_Device_t *dev)
+{
+  if(dev == NULL)
+  {
+    return NULL;
+  }
+
+  return (ADC_Private_t *)dev->hw_handle;
+}
+
+static uint32_t drv_adc_map_resolution(DRV_ADC_Resolution_t resolution)
 {
   switch(resolution)
   {
@@ -60,13 +69,11 @@ static uint32_t DRV_ADC_MapResolution(DRV_ADC_Resolution_t resolution)
   }
 }
 
-/* ==================== HAL MSP 回调 ==================== */
-
 void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  ADC_Instance_t *inst = DRV_ADC_GetInstanceByHandle(hadc);
-  if(inst == NULL)
+  ADC_Private_t *priv = drv_adc_private_from_hal(hadc);
+  if(priv == NULL)
   {
     return;
   }
@@ -82,19 +89,19 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     __HAL_RCC_DMA1_CLK_ENABLE();
-    inst->dma_handle.Instance = DMA1_Stream0;
-    inst->dma_handle.Init.Request = DMA_REQUEST_ADC1;
-    inst->dma_handle.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    inst->dma_handle.Init.PeriphInc = DMA_PINC_DISABLE;
-    inst->dma_handle.Init.MemInc = DMA_MINC_ENABLE;
-    inst->dma_handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    inst->dma_handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-    inst->dma_handle.Init.Mode = DMA_CIRCULAR;
-    inst->dma_handle.Init.Priority = DMA_PRIORITY_HIGH;
-    inst->dma_handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    if(HAL_DMA_Init(&inst->dma_handle) == HAL_OK)
+    priv->dma_handle.Instance = DMA1_Stream0;
+    priv->dma_handle.Init.Request = DMA_REQUEST_ADC1;
+    priv->dma_handle.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    priv->dma_handle.Init.PeriphInc = DMA_PINC_DISABLE;
+    priv->dma_handle.Init.MemInc = DMA_MINC_ENABLE;
+    priv->dma_handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    priv->dma_handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    priv->dma_handle.Init.Mode = DMA_CIRCULAR;
+    priv->dma_handle.Init.Priority = DMA_PRIORITY_HIGH;
+    priv->dma_handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    if(HAL_DMA_Init(&priv->dma_handle) == HAL_OK)
     {
-      __HAL_LINKDMA(hadc, DMA_Handle, inst->dma_handle);
+      __HAL_LINKDMA(hadc, DMA_Handle, priv->dma_handle);
     }
   }
   else if(hadc->Instance == ADC2_INSTANCE)
@@ -108,19 +115,19 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     __HAL_RCC_DMA1_CLK_ENABLE();
-    inst->dma_handle.Instance = DMA1_Stream1;
-    inst->dma_handle.Init.Request = DMA_REQUEST_ADC2;
-    inst->dma_handle.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    inst->dma_handle.Init.PeriphInc = DMA_PINC_DISABLE;
-    inst->dma_handle.Init.MemInc = DMA_MINC_ENABLE;
-    inst->dma_handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    inst->dma_handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-    inst->dma_handle.Init.Mode = DMA_CIRCULAR;
-    inst->dma_handle.Init.Priority = DMA_PRIORITY_HIGH;
-    inst->dma_handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    if(HAL_DMA_Init(&inst->dma_handle) == HAL_OK)
+    priv->dma_handle.Instance = DMA1_Stream1;
+    priv->dma_handle.Init.Request = DMA_REQUEST_ADC2;
+    priv->dma_handle.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    priv->dma_handle.Init.PeriphInc = DMA_PINC_DISABLE;
+    priv->dma_handle.Init.MemInc = DMA_MINC_ENABLE;
+    priv->dma_handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    priv->dma_handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    priv->dma_handle.Init.Mode = DMA_CIRCULAR;
+    priv->dma_handle.Init.Priority = DMA_PRIORITY_HIGH;
+    priv->dma_handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    if(HAL_DMA_Init(&priv->dma_handle) == HAL_OK)
     {
-      __HAL_LINKDMA(hadc, DMA_Handle, inst->dma_handle);
+      __HAL_LINKDMA(hadc, DMA_Handle, priv->dma_handle);
     }
   }
 }
@@ -139,21 +146,19 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc)
   }
 }
 
-/* ==================== 驱动接口实现 ==================== */
-
-int DRV_ADC_Init(ADC_Config_t *config)
+static int stm32h7_adc_init(ADC_Device_t *dev, DRV_ADC_Config_t *config)
 {
   ADC_ChannelConfTypeDef sConfig = {0};
+  ADC_Private_t *priv = drv_adc_private_from_dev(dev);
   ADC_HandleTypeDef *hadc = NULL;
   uint32_t channel = 0;
 
-  if(config == NULL || config->instance >= DRV_ADC_MAX)
+  if(dev == NULL || config == NULL || priv == NULL)
   {
     return DRV_ERROR;
   }
 
-  ADC_Instance_t *inst = &s_adc_instances[config->instance];
-  hadc = &inst->hal_handle;
+  hadc = &priv->hal_handle;
 
   if(config->instance == DRV_ADC1)
   {
@@ -171,7 +176,7 @@ int DRV_ADC_Init(ADC_Config_t *config)
   }
 
   hadc->Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
-  hadc->Init.Resolution = DRV_ADC_MapResolution(config->resolution);
+  hadc->Init.Resolution = drv_adc_map_resolution(config->resolution);
   hadc->Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc->Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc->Init.LowPowerAutoWait = DISABLE;
@@ -213,19 +218,22 @@ int DRV_ADC_Init(ADC_Config_t *config)
     return DRV_ERROR;
   }
 
-  inst->initialized = 1;
+  priv->initialized = 1U;
+  dev->dma_buffer = NULL;
 
   return DRV_OK;
 }
 
-int DRV_ADC_DeInit(ADC_Handle_t handle)
+static int stm32h7_adc_deinit(ADC_Device_t *dev)
 {
-  if(handle == NULL)
+  ADC_Private_t *priv = drv_adc_private_from_dev(dev);
+
+  if(priv == NULL)
   {
     return DRV_ERROR;
   }
 
-  if(HAL_ADC_DeInit((ADC_HandleTypeDef *)handle) != HAL_OK)
+  if(HAL_ADC_DeInit(&priv->hal_handle) != HAL_OK)
   {
     return DRV_ERROR;
   }
@@ -233,24 +241,17 @@ int DRV_ADC_DeInit(ADC_Handle_t handle)
   return DRV_OK;
 }
 
-ADC_Handle_t DRV_ADC_GetHandle(DRV_ADC_Instance_t instance)
+static int stm32h7_adc_read(ADC_Device_t *dev, uint16_t *value)
 {
-  if(instance >= DRV_ADC_MAX)
-  {
-    return NULL;
-  }
+  ADC_Private_t *priv = drv_adc_private_from_dev(dev);
+  ADC_HandleTypeDef *hadc = NULL;
 
-  return (ADC_Handle_t)&s_adc_instances[instance].hal_handle;
-}
-
-int DRV_ADC_Read(ADC_Handle_t handle, uint16_t *value)
-{
-  if(handle == NULL || value == NULL)
+  if(priv == NULL || value == NULL)
   {
     return DRV_ERROR;
   }
 
-  ADC_HandleTypeDef *hadc = (ADC_HandleTypeDef *)handle;
+  hadc = &priv->hal_handle;
 
   if(HAL_ADC_Start(hadc) != HAL_OK)
   {
@@ -270,22 +271,20 @@ int DRV_ADC_Read(ADC_Handle_t handle, uint16_t *value)
   return DRV_OK;
 }
 
-int DRV_ADC_StartDMA(ADC_Handle_t handle, uint16_t *buffer, uint16_t len)
+static int stm32h7_adc_start_dma(ADC_Device_t *dev, uint16_t *buffer, uint16_t len)
 {
-  if(handle == NULL || buffer == NULL || len == 0)
+  ADC_Private_t *priv = drv_adc_private_from_dev(dev);
+  ADC_HandleTypeDef *hadc = NULL;
+
+  if(priv == NULL || buffer == NULL || len == 0)
   {
     return DRV_ERROR;
   }
 
-  ADC_HandleTypeDef *hadc = (ADC_HandleTypeDef *)handle;
-  ADC_Instance_t *inst = DRV_ADC_GetInstanceByHandle(hadc);
-  if(inst == NULL)
-  {
-    return DRV_ERROR;
-  }
-
-  inst->dma_buffer = buffer;
-  inst->buffer_len = len;
+  hadc = &priv->hal_handle;
+  priv->dma_buffer = buffer;
+  priv->buffer_len = len;
+  dev->dma_buffer = buffer;
 
   if(HAL_ADC_Start_DMA(hadc, (uint32_t *)buffer, len) != HAL_OK)
   {
@@ -295,14 +294,17 @@ int DRV_ADC_StartDMA(ADC_Handle_t handle, uint16_t *buffer, uint16_t len)
   return DRV_OK;
 }
 
-int DRV_ADC_StopDMA(ADC_Handle_t handle)
+static int stm32h7_adc_stop_dma(ADC_Device_t *dev)
 {
-  if(handle == NULL)
+  ADC_Private_t *priv = drv_adc_private_from_dev(dev);
+  ADC_HandleTypeDef *hadc = NULL;
+
+  if(priv == NULL)
   {
     return DRV_ERROR;
   }
 
-  ADC_HandleTypeDef *hadc = (ADC_HandleTypeDef *)handle;
+  hadc = &priv->hal_handle;
 
   if(HAL_ADC_Stop_DMA(hadc) != HAL_OK)
   {
@@ -312,12 +314,32 @@ int DRV_ADC_StopDMA(ADC_Handle_t handle)
   return DRV_OK;
 }
 
-uint16_t *DRV_ADC_GetDMABuffer(DRV_ADC_Instance_t instance)
+static ADC_Ops_t stm32h7_adc_ops =
 {
-  if(instance >= DRV_ADC_MAX)
-  {
-    return NULL;
-  }
+  .init = stm32h7_adc_init,
+  .deinit = stm32h7_adc_deinit,
+  .read = stm32h7_adc_read,
+  .start_dma = stm32h7_adc_start_dma,
+  .stop_dma = stm32h7_adc_stop_dma
+};
 
-  return s_adc_instances[instance].dma_buffer;
-}
+static ADC_Device_t adc1_device =
+{
+  .name = "ADC1",
+  .instance = DRV_ADC1,
+  .hw_handle = &s_adc1_private,
+  .dma_buffer = NULL,
+  .ops = &stm32h7_adc_ops
+};
+
+static ADC_Device_t adc2_device =
+{
+  .name = "ADC2",
+  .instance = DRV_ADC2,
+  .hw_handle = &s_adc2_private,
+  .dma_buffer = NULL,
+  .ops = &stm32h7_adc_ops
+};
+
+ADC_Device_t *drv_adc1 = &adc1_device;
+ADC_Device_t *drv_adc2 = &adc2_device;

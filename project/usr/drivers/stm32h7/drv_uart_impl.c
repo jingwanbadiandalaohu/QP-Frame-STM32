@@ -1,14 +1,12 @@
 /**
  * @file drv_uart_impl.c
- * @brief STM32H7 平台 UART 驱动实现
- * @note 包含 MspInit、时钟配置、HAL 调用
+ * @brief STM32H7 UART driver implementation
  */
 
 #include "drv_uart.h"
 #include "platform_config.h"
 
-/* ==================== UART 硬件配置 ==================== */
-/* UART1 配置 */
+/* UART1 configuration */
 #define UART1_INSTANCE              USART1
 #define UART1_CLK_ENABLE()          __HAL_RCC_USART1_CLK_ENABLE()
 #define UART1_GPIO_CLK_ENABLE()     __HAL_RCC_GPIOA_CLK_ENABLE()
@@ -18,7 +16,7 @@
 #define UART1_AF                    GPIO_AF7_USART1
 #define UART1_IRQn                  USART1_IRQn
 
-/* UART2 配置 */
+/* UART2 configuration */
 #define UART2_INSTANCE              USART2
 #define UART2_CLK_ENABLE()          __HAL_RCC_USART2_CLK_ENABLE()
 #define UART2_GPIO_CLK_ENABLE()     __HAL_RCC_GPIOA_CLK_ENABLE()
@@ -28,18 +26,45 @@
 #define UART2_AF                    GPIO_AF7_USART2
 #define UART2_IRQn                  USART2_IRQn
 
-/* ==================== 内部数据结构 ==================== */
 typedef struct
 {
   UART_HandleTypeDef hal_handle;
   uint8_t rx_byte;
   volatile uint8_t rx_ready;
   uint8_t initialized;
-} UART_Instance_t;
+} UART_Private_t;
 
-static UART_Instance_t s_uart_instances[DRV_UART_MAX] = {0};
+static UART_Private_t s_uart1_private = {0};
+static UART_Private_t s_uart2_private = {0};
 
-/* ==================== HAL MSP 回调 ==================== */
+static UART_Private_t *drv_uart_private_from_hal(UART_HandleTypeDef *huart)
+{
+  if(huart == NULL)
+  {
+    return NULL;
+  }
+
+  if(huart->Instance == UART1_INSTANCE)
+  {
+    return &s_uart1_private;
+  }
+  if(huart->Instance == UART2_INSTANCE)
+  {
+    return &s_uart2_private;
+  }
+
+  return NULL;
+}
+
+static UART_Private_t *drv_uart_private_from_dev(UART_Device_t *dev)
+{
+  if(dev == NULL)
+  {
+    return NULL;
+  }
+
+  return (UART_Private_t *)dev->hw_handle;
+}
 
 void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 {
@@ -50,7 +75,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     UART1_CLK_ENABLE();
     UART1_GPIO_CLK_ENABLE();
 
-    /* TX */
     GPIO_InitStruct.Pin       = UART1_TX_PIN;
     GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull      = GPIO_PULLUP;
@@ -58,7 +82,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     GPIO_InitStruct.Alternate = UART1_AF;
     HAL_GPIO_Init(UART1_PORT, &GPIO_InitStruct);
 
-    /* RX */
     GPIO_InitStruct.Pin       = UART1_RX_PIN;
     HAL_GPIO_Init(UART1_PORT, &GPIO_InitStruct);
 
@@ -70,7 +93,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     UART2_CLK_ENABLE();
     UART2_GPIO_CLK_ENABLE();
 
-    /* TX */
     GPIO_InitStruct.Pin       = UART2_TX_PIN;
     GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull      = GPIO_PULLUP;
@@ -78,7 +100,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     GPIO_InitStruct.Alternate = UART2_AF;
     HAL_GPIO_Init(UART2_PORT, &GPIO_InitStruct);
 
-    /* RX */
     GPIO_InitStruct.Pin       = UART2_RX_PIN;
     HAL_GPIO_Init(UART2_PORT, &GPIO_InitStruct);
 
@@ -103,41 +124,30 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart)
   }
 }
 
-/* ==================== UART 接收回调 ==================== */
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-  if(huart->Instance == UART1_INSTANCE)
+  UART_Private_t *priv = drv_uart_private_from_hal(huart);
+  if(priv == NULL)
   {
-    s_uart_instances[DRV_UART1].rx_ready = 1U;
-    HAL_UART_Receive_IT(&s_uart_instances[DRV_UART1].hal_handle,
-                        &s_uart_instances[DRV_UART1].rx_byte, 1);
+    return;
   }
-  else if(huart->Instance == UART2_INSTANCE)
-  {
-    s_uart_instances[DRV_UART2].rx_ready = 1U;
-    HAL_UART_Receive_IT(&s_uart_instances[DRV_UART2].hal_handle,
-                        &s_uart_instances[DRV_UART2].rx_byte, 1);
-  }
+
+  priv->rx_ready = 1U;
+  HAL_UART_Receive_IT(&priv->hal_handle, &priv->rx_byte, 1);
 }
 
-
-/* ==================== 驱动接口实现 ==================== */
-
-/**
- * @brief 初始化 UART
- */
-int DRV_UART_Init(UART_Config_t *config)
+static int stm32h7_uart_init(UART_Device_t *dev, DRV_UART_Config_t *config)
 {
-  if(config == NULL || config->instance >= DRV_UART_MAX)
+  UART_Private_t *priv = drv_uart_private_from_dev(dev);
+  UART_HandleTypeDef *huart = NULL;
+
+  if(dev == NULL || config == NULL || priv == NULL)
   {
     return DRV_ERROR;
   }
 
-  UART_Instance_t *inst = &s_uart_instances[config->instance];
-  UART_HandleTypeDef *huart = &inst->hal_handle;
+  huart = &priv->hal_handle;
 
-  /* 选择 UART 实例 */
   if(config->instance == DRV_UART1)
   {
     huart->Instance = UART1_INSTANCE;
@@ -151,7 +161,6 @@ int DRV_UART_Init(UART_Config_t *config)
     return DRV_ERROR;
   }
 
-  /* 配置参数 */
   huart->Init.BaudRate = config->baudrate;
   huart->Init.WordLength = UART_WORDLENGTH_8B;
   huart->Init.StopBits = (config->stop_bits == DRV_UART_STOPBITS_2) ?
@@ -179,186 +188,197 @@ int DRV_UART_Init(UART_Config_t *config)
     return DRV_ERROR;
   }
 
-  /* 启动中断接收 */
-  HAL_UART_Receive_IT(huart, &inst->rx_byte, 1);
-
-  inst->initialized = 1;
+  HAL_UART_Receive_IT(huart, &priv->rx_byte, 1);
+  priv->initialized = 1U;
 
   return DRV_OK;
 }
 
-/**
- * @brief 反初始化 UART
- */
-int DRV_UART_DeInit(DRV_UART_Instance_t instance)
+static int stm32h7_uart_deinit(UART_Device_t *dev)
 {
-  if(instance >= DRV_UART_MAX)
+  UART_Private_t *priv = drv_uart_private_from_dev(dev);
+
+  if(priv == NULL)
   {
     return DRV_ERROR;
   }
 
-  UART_Instance_t *inst = &s_uart_instances[instance];
-
-  if(HAL_UART_DeInit(&inst->hal_handle) != HAL_OK)
+  if(HAL_UART_DeInit(&priv->hal_handle) != HAL_OK)
   {
     return DRV_ERROR;
   }
 
-  inst->initialized = 0;
+  priv->initialized = 0U;
 
   return DRV_OK;
 }
 
-/**
- * @brief 获取 UART 句柄
- */
-UART_Handle_t DRV_UART_GetHandle(DRV_UART_Instance_t instance)
+static int stm32h7_uart_transmit(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout)
 {
-  if(instance >= DRV_UART_MAX)
-  {
-    return NULL;
-  }
+  UART_Private_t *priv = drv_uart_private_from_dev(dev);
+  HAL_StatusTypeDef status;
 
-  return (UART_Handle_t)&s_uart_instances[instance].hal_handle;
-}
-
-/**
- * @brief 读取接收到的字节
- */
-int DRV_UART_ReadByte(DRV_UART_Instance_t instance, uint8_t *out)
-{
-  if(instance >= DRV_UART_MAX || out == NULL)
+  if(priv == NULL || data == NULL)
   {
     return DRV_ERROR;
   }
 
-  UART_Instance_t *inst = &s_uart_instances[instance];
+  status = HAL_UART_Transmit(&priv->hal_handle, data, len, timeout);
 
-  if(inst->rx_ready == 0U)
+  if(status == HAL_OK)
+  {
+    return DRV_OK;
+  }
+  else if(status == HAL_TIMEOUT)
+  {
+    return DRV_TIMEOUT;
+  }
+  else if(status == HAL_BUSY)
+  {
+    return DRV_BUSY;
+  }
+
+  return DRV_ERROR;
+}
+
+static int stm32h7_uart_receive(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout)
+{
+  UART_Private_t *priv = drv_uart_private_from_dev(dev);
+  HAL_StatusTypeDef status;
+
+  if(priv == NULL || data == NULL)
+  {
+    return DRV_ERROR;
+  }
+
+  status = HAL_UART_Receive(&priv->hal_handle, data, len, timeout);
+
+  if(status == HAL_OK)
+  {
+    return DRV_OK;
+  }
+  else if(status == HAL_TIMEOUT)
+  {
+    return DRV_TIMEOUT;
+  }
+  else if(status == HAL_BUSY)
+  {
+    return DRV_BUSY;
+  }
+
+  return DRV_ERROR;
+}
+
+static int stm32h7_uart_transmit_it(UART_Device_t *dev, uint8_t *data, uint16_t len)
+{
+  UART_Private_t *priv = drv_uart_private_from_dev(dev);
+  HAL_StatusTypeDef status;
+
+  if(priv == NULL || data == NULL)
+  {
+    return DRV_ERROR;
+  }
+
+  status = HAL_UART_Transmit_IT(&priv->hal_handle, data, len);
+
+  if(status == HAL_OK)
+  {
+    return DRV_OK;
+  }
+  else if(status == HAL_BUSY)
+  {
+    return DRV_BUSY;
+  }
+
+  return DRV_ERROR;
+}
+
+static int stm32h7_uart_receive_it(UART_Device_t *dev, uint8_t *data, uint16_t len)
+{
+  UART_Private_t *priv = drv_uart_private_from_dev(dev);
+  HAL_StatusTypeDef status;
+
+  if(priv == NULL || data == NULL)
+  {
+    return DRV_ERROR;
+  }
+
+  status = HAL_UART_Receive_IT(&priv->hal_handle, data, len);
+
+  if(status == HAL_OK)
+  {
+    return DRV_OK;
+  }
+  else if(status == HAL_BUSY)
+  {
+    return DRV_BUSY;
+  }
+
+  return DRV_ERROR;
+}
+
+static UART_Ops_t stm32h7_uart_ops =
+{
+  .init = stm32h7_uart_init,
+  .deinit = stm32h7_uart_deinit,
+  .transmit = stm32h7_uart_transmit,
+  .receive = stm32h7_uart_receive,
+  .transmit_it = stm32h7_uart_transmit_it,
+  .receive_it = stm32h7_uart_receive_it
+};
+
+static UART_Device_t uart1_device =
+{
+  .name = "UART1",
+  .instance = DRV_UART1,
+  .hw_handle = &s_uart1_private,
+  .ops = &stm32h7_uart_ops
+};
+
+static UART_Device_t uart2_device =
+{
+  .name = "UART2",
+  .instance = DRV_UART2,
+  .hw_handle = &s_uart2_private,
+  .ops = &stm32h7_uart_ops
+};
+
+UART_Device_t *drv_uart1 = &uart1_device;
+UART_Device_t *drv_uart2 = &uart2_device;
+
+int uart_read_byte(UART_Device_t *dev, uint8_t *out)
+{
+  UART_Private_t *priv = drv_uart_private_from_dev(dev);
+
+  if(priv == NULL || out == NULL)
+  {
+    return DRV_ERROR;
+  }
+
+  if(priv->rx_ready == 0U)
   {
     return 0;
   }
 
-  *out = inst->rx_byte;
-  inst->rx_ready = 0U;
+  *out = priv->rx_byte;
+  priv->rx_ready = 0U;
 
   return 1;
 }
 
-/**
- * @brief 阻塞方式发送数据
- */
-int DRV_UART_Transmit(UART_Handle_t handle, uint8_t *data, uint16_t len,
-                      uint32_t timeout)
+void drv_uart_irq_handler(UART_Device_t *dev)
 {
-  if(handle == NULL || data == NULL)
+  UART_Private_t *priv = drv_uart_private_from_dev(dev);
+
+  if(priv == NULL)
   {
-    return DRV_ERROR;
+    return;
   }
 
-  HAL_StatusTypeDef status = HAL_UART_Transmit((UART_HandleTypeDef *)handle,
-                                                data, len, timeout);
-
-  if(status == HAL_OK)
-  {
-    return DRV_OK;
-  }
-  else if(status == HAL_TIMEOUT)
-  {
-    return DRV_TIMEOUT;
-  }
-  else if(status == HAL_BUSY)
-  {
-    return DRV_BUSY;
-  }
-
-  return DRV_ERROR;
+  HAL_UART_IRQHandler(&priv->hal_handle);
 }
-
-/**
- * @brief 阻塞方式接收数据
- */
-int DRV_UART_Receive(UART_Handle_t handle, uint8_t *data, uint16_t len,
-                     uint32_t timeout)
-{
-  if(handle == NULL || data == NULL)
-  {
-    return DRV_ERROR;
-  }
-
-  HAL_StatusTypeDef status = HAL_UART_Receive((UART_HandleTypeDef *)handle,
-                                               data, len, timeout);
-
-  if(status == HAL_OK)
-  {
-    return DRV_OK;
-  }
-  else if(status == HAL_TIMEOUT)
-  {
-    return DRV_TIMEOUT;
-  }
-  else if(status == HAL_BUSY)
-  {
-    return DRV_BUSY;
-  }
-
-  return DRV_ERROR;
-}
-
-/**
- * @brief 中断方式发送数据
- */
-int DRV_UART_TransmitIT(UART_Handle_t handle, uint8_t *data, uint16_t len)
-{
-  if(handle == NULL || data == NULL)
-  {
-    return DRV_ERROR;
-  }
-
-  HAL_StatusTypeDef status = HAL_UART_Transmit_IT((UART_HandleTypeDef *)handle,
-                                                   data, len);
-
-  if(status == HAL_OK)
-  {
-    return DRV_OK;
-  }
-  else if(status == HAL_BUSY)
-  {
-    return DRV_BUSY;
-  }
-
-  return DRV_ERROR;
-}
-
-/**
- * @brief 中断方式接收数据
- */
-int DRV_UART_ReceiveIT(UART_Handle_t handle, uint8_t *data, uint16_t len)
-{
-  if(handle == NULL || data == NULL)
-  {
-    return DRV_ERROR;
-  }
-
-  HAL_StatusTypeDef status = HAL_UART_Receive_IT((UART_HandleTypeDef *)handle,
-                                                  data, len);
-
-  if(status == HAL_OK)
-  {
-    return DRV_OK;
-  }
-  else if(status == HAL_BUSY)
-  {
-    return DRV_BUSY;
-  }
-
-  return DRV_ERROR;
-}
-
-/* ==================== printf 输出重定向 ==================== */
 
 void _putchar(char character)
 {
-  DRV_UART_Transmit(DRV_UART_GetHandle(DRV_UART2),
-                    (uint8_t *)&character, 1, 0xFFFF);
+  uart_transmit(drv_uart2, (uint8_t *)&character, 1, 0xFFFF);
 }

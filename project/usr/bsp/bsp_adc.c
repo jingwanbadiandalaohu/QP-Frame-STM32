@@ -16,26 +16,26 @@ uint16_t g_adc2_dma_buffer[ADC2_DMA_BUFFER_LENGTH];
 
 /* ==================== 句柄获取函数 ==================== */
 
-ADC_Handle_t BSP_GetAdc1Handle(void)
+ADC_Device_t *BSP_GetAdc1Handle(void)
 {
-  return DRV_ADC_GetHandle(DRV_ADC1);
+  return drv_adc1;
 }
 
-ADC_Handle_t BSP_GetAdc2Handle(void)
+ADC_Device_t *BSP_GetAdc2Handle(void)
 {
-  return DRV_ADC_GetHandle(DRV_ADC2);
+  return drv_adc2;
 }
 
 /* ==================== 初始化函数==================== */
 
 void BSP_ADC_Init(void)
 {
-  ADC_Config_t config;
+  DRV_ADC_Config_t config;
 
   config.instance = DRV_ADC1;
   config.channel = 0;
   config.resolution = DRV_ADC_RESOLUTION_16BIT;
-  if(DRV_ADC_Init(&config) != DRV_OK)
+  if(adc_init(drv_adc1, &config) != DRV_OK)
   {
     DRV_System_ErrorHandler();
   }
@@ -43,18 +43,18 @@ void BSP_ADC_Init(void)
   config.instance = DRV_ADC2;
   config.channel = 0;
   config.resolution = DRV_ADC_RESOLUTION_16BIT;
-  if(DRV_ADC_Init(&config) != DRV_OK)
+  if(adc_init(drv_adc2, &config) != DRV_OK)
   {
     DRV_System_ErrorHandler();
   }
 
-  if(DRV_ADC_StartDMA(DRV_ADC_GetHandle(DRV_ADC1), g_adc1_dma_buffer,
-                       ADC1_DMA_BUFFER_LENGTH) != DRV_OK)
+  if(adc_start_dma(drv_adc1, g_adc1_dma_buffer,
+                    ADC1_DMA_BUFFER_LENGTH) != DRV_OK)
   {
     DRV_System_ErrorHandler();
   }
-  if(DRV_ADC_StartDMA(DRV_ADC_GetHandle(DRV_ADC2), g_adc2_dma_buffer,
-                       ADC2_DMA_BUFFER_LENGTH) != DRV_OK)
+  if(adc_start_dma(drv_adc2, g_adc2_dma_buffer,
+                    ADC2_DMA_BUFFER_LENGTH) != DRV_OK)
   {
     DRV_System_ErrorHandler();
   }

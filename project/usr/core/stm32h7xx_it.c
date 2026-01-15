@@ -227,11 +227,7 @@ void USART1_IRQHandler(void)
   /* USER CODE BEGIN USART1_IRQn 0 */
 
   /* USER CODE END USART1_IRQn 0 */
-  UART_HandleTypeDef *huart = (UART_HandleTypeDef *)DRV_UART_GetHandle(DRV_UART1);
-  if(huart != NULL)
-  {
-    HAL_UART_IRQHandler(huart);
-  }
+  drv_uart_irq_handler(drv_uart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
 
   /* USER CODE END USART1_IRQn 1 */
@@ -247,11 +243,7 @@ void USART2_IRQHandler(void)
   /* USER CODE BEGIN USART2_IRQn 0 */
 
   /* USER CODE END USART2_IRQn 0 */
-  UART_HandleTypeDef *huart = (UART_HandleTypeDef *)DRV_UART_GetHandle(DRV_UART2);
-  if(huart != NULL)
-  {
-    HAL_UART_IRQHandler(huart);
-  }
+  drv_uart_irq_handler(drv_uart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
 
   /* USER CODE END USART2_IRQn 1 */

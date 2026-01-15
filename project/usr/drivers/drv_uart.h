@@ -1,7 +1,6 @@
 /**
  * @file drv_uart.h
- * @brief UART 驱动层抽象接口
- * @note 平台无关的 UART 操作接口定义
+ * @brief UART driver abstraction layer (platform-independent interface)
  */
 
 #ifndef DRV_UART_H
@@ -13,10 +12,8 @@
 extern "C" {
 #endif
 
-/* 类型定义 */
-typedef void *UART_Handle_t;
+typedef struct UART_Device UART_Device_t;
 
-/* UART 实例枚举 */
 typedef enum
 {
   DRV_UART1,
@@ -29,24 +26,24 @@ typedef enum
   DRV_UART_PARITY_NONE,
   DRV_UART_PARITY_EVEN,
   DRV_UART_PARITY_ODD
-} UART_Parity_t;
+} DRV_UART_Parity_t;
 
 typedef enum
 {
   DRV_UART_STOPBITS_1,
   DRV_UART_STOPBITS_2
-} UART_StopBits_t;
+} DRV_UART_StopBits_t;
 
 typedef struct
 {
   DRV_UART_Instance_t instance;
   uint32_t baudrate;
   uint8_t data_bits;
-  UART_StopBits_t stop_bits;
-  UART_Parity_t parity;
-} UART_Config_t;
+  DRV_UART_StopBits_t stop_bits;
+  DRV_UART_Parity_t parity;
+} DRV_UART_Config_t;
 
-/* 返回值约定: 0 表示成功, 负值表示失败 */
+/* Return codes */
 #ifndef DRV_OK
 #define DRV_OK          0
 #define DRV_ERROR      -1
@@ -54,74 +51,84 @@ typedef struct
 #define DRV_TIMEOUT    -3
 #endif
 
-/**
- * @brief 初始化 UART
- * @param config UART 配置结构体指针
- * @return 0 成功, 负值失败
- */
-int DRV_UART_Init(UART_Config_t *config);
+typedef struct UART_Operations
+{
+  int (*init)(UART_Device_t *dev, DRV_UART_Config_t *config);
+  int (*deinit)(UART_Device_t *dev);
+  int (*transmit)(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout);
+  int (*receive)(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout);
+  int (*transmit_it)(UART_Device_t *dev, uint8_t *data, uint16_t len);
+  int (*receive_it)(UART_Device_t *dev, uint8_t *data, uint16_t len);
+} UART_Ops_t;
 
-/**
- * @brief 反初始化 UART
- * @param instance UART 实例
- * @return 0 成功, 负值失败
- */
-int DRV_UART_DeInit(DRV_UART_Instance_t instance);
+struct UART_Device
+{
+  const char *name;
+  DRV_UART_Instance_t instance;
+  void *hw_handle;
+  UART_Ops_t *ops;
+};
 
-/**
- * @brief 获取 UART 句柄
- * @param instance UART 实例
- * @return UART 句柄, NULL 表示无效
- */
-UART_Handle_t DRV_UART_GetHandle(DRV_UART_Instance_t instance);
+static inline int uart_init(UART_Device_t *dev, DRV_UART_Config_t *config)
+{
+  if(dev && dev->ops && dev->ops->init)
+  {
+    return dev->ops->init(dev, config);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 阻塞方式发送数据
- * @param handle UART 句柄
- * @param data 数据缓冲区指针
- * @param len 数据长度
- * @param timeout 超时时间(ms)
- * @return 0 成功, 负值失败
- */
-int DRV_UART_Transmit(UART_Handle_t handle, uint8_t *data, uint16_t len,
-                      uint32_t timeout);
+static inline int uart_deinit(UART_Device_t *dev)
+{
+  if(dev && dev->ops && dev->ops->deinit)
+  {
+    return dev->ops->deinit(dev);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 阻塞方式接收数据
- * @param handle UART 句柄
- * @param data 数据缓冲区指针
- * @param len 数据长度
- * @param timeout 超时时间(ms)
- * @return 0 成功, 负值失败
- */
-int DRV_UART_Receive(UART_Handle_t handle, uint8_t *data, uint16_t len,
-                     uint32_t timeout);
+static inline int uart_transmit(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout)
+{
+  if(dev && dev->ops && dev->ops->transmit)
+  {
+    return dev->ops->transmit(dev, data, len, timeout);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 中断方式发送数据
- * @param handle UART 句柄
- * @param data 数据缓冲区指针
- * @param len 数据长度
- * @return 0 成功, 负值失败
- */
-int DRV_UART_TransmitIT(UART_Handle_t handle, uint8_t *data, uint16_t len);
+static inline int uart_receive(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout)
+{
+  if(dev && dev->ops && dev->ops->receive)
+  {
+    return dev->ops->receive(dev, data, len, timeout);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 中断方式接收数据
- * @param handle UART 句柄
- * @param data 数据缓冲区指针
- * @param len 数据长度
- * @return 0 成功, 负值失败
- */
-int DRV_UART_ReceiveIT(UART_Handle_t handle, uint8_t *data, uint16_t len);
+static inline int uart_transmit_it(UART_Device_t *dev, uint8_t *data, uint16_t len)
+{
+  if(dev && dev->ops && dev->ops->transmit_it)
+  {
+    return dev->ops->transmit_it(dev, data, len);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 读取接收到的单字节数据
- * @param instance UART 实例
- * @param out 输出缓冲区
- * @return 1 有新数据, 0 无数据, 负值失败
- */
-int DRV_UART_ReadByte(DRV_UART_Instance_t instance, uint8_t *out);
+static inline int uart_receive_it(UART_Device_t *dev, uint8_t *data, uint16_t len)
+{
+  if(dev && dev->ops && dev->ops->receive_it)
+  {
+    return dev->ops->receive_it(dev, data, len);
+  }
+  return DRV_ERROR;
+}
+
+int uart_read_byte(UART_Device_t *dev, uint8_t *out);
+void drv_uart_irq_handler(UART_Device_t *dev);
+
+/* Platform device instances */
+extern UART_Device_t *drv_uart1;
+extern UART_Device_t *drv_uart2;
 
 #ifdef __cplusplus
 }

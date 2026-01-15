@@ -92,20 +92,27 @@ project
     ├── core/                   # 启动文件（保持不变）
     │   └── startup_stm32h750xx.s
     ├── drivers/                # 抽象硬件层
-    │   ├── drv_gpio.h          # GPIO抽象接口
-    │   ├── drv_uart.h          # UART抽象接口
-    │   ├── drv_adc.h           # ADC抽象接口
+    │   ├── drv_gpio.h          # GPIO抽象接口（函数指针封装）
+    │   ├── drv_uart.h          # UART抽象接口（函数指针封装）
+    │   ├── drv_adc.h           # ADC抽象接口（函数指针封装）
     │   └── stm32h7/            # STM32H7平台实现
     │       ├── drv_gpio_impl.c
     │       ├── drv_uart_impl.c # 包含MspInit、时钟配置
     │       ├── drv_adc_impl.c  # 包含MspInit、DMA配置
     │       └── drv_system.c    # 系统时钟配置
+    ├── simulator/              # 模拟器实现（预留扩展）
+    │   ├── drivers/
+    │   │   └── simulator/
+    │   │       ├── drv_gpio_sim.c
+    │   │       ├── drv_uart_sim.c
+    │   │       └── drv_adc_sim.c
+    │   └── main.c              # 模拟器主程序
     └── inc/                    # 配置头文件（保持不变）
         ├── FreeRTOSConfig.h
         └── stm32h7xx_hal_conf.h
 ```
 
-### GPIO 驱动接口 (drivers/drv_gpio.h)
+### GPIO 驱动接口 (drivers/drv_gpio.h) - 函数指针封装
 
 ```c
 #ifndef DRV_GPIO_H
@@ -117,8 +124,8 @@ project
 extern "C" {
 #endif
 
-/* 抽象句柄类型 */
-typedef void *GPIO_Port_t;
+/* 前向声明 */
+typedef struct GPIO_Port GPIO_Port_t;
 
 /* GPIO 模式枚举 */
 typedef enum
@@ -148,7 +155,6 @@ typedef enum
 
 typedef struct
 {
-  GPIO_Port_t port;
   uint16_t pin;
   DRV_GPIO_Mode_t mode;
   DRV_GPIO_Pull_t pull;
@@ -158,13 +164,6 @@ typedef struct
 /* 返回值: 0成功, 负值失败 */
 #define DRV_OK       0
 #define DRV_ERROR   -1
-
-/* 平台端口定义（由平台实现提供） */
-extern GPIO_Port_t DRV_GPIOA;
-extern GPIO_Port_t DRV_GPIOB;
-extern GPIO_Port_t DRV_GPIOC;
-extern GPIO_Port_t DRV_GPIOD;
-extern GPIO_Port_t DRV_GPIOE;
 
 /* 引脚定义 */
 #define DRV_PIN_0   (1U << 0)
@@ -184,11 +183,67 @@ extern GPIO_Port_t DRV_GPIOE;
 #define DRV_PIN_14  (1U << 14)
 #define DRV_PIN_15  (1U << 15)
 
-int DRV_GPIO_Init(DRV_GPIO_Config_t *config);
-int DRV_GPIO_DeInit(GPIO_Port_t port, uint16_t pin);
-int DRV_GPIO_Write(GPIO_Port_t port, uint16_t pin, uint8_t state);
-int DRV_GPIO_Read(GPIO_Port_t port, uint16_t pin, uint8_t *state);
-int DRV_GPIO_Toggle(GPIO_Port_t port, uint16_t pin);
+/* GPIO 操作函数集（类似 Linux file_operations） */
+typedef struct GPIO_Operations
+{
+  int (*init)(GPIO_Port_t *port, DRV_GPIO_Config_t *config);
+  int (*deinit)(GPIO_Port_t *port, uint16_t pin);
+  int (*write)(GPIO_Port_t *port, uint16_t pin, uint8_t state);
+  int (*read)(GPIO_Port_t *port, uint16_t pin, uint8_t *state);
+  int (*toggle)(GPIO_Port_t *port, uint16_t pin);
+} GPIO_Ops_t;
+
+/* GPIO 端口设备对象 */
+struct GPIO_Port
+{
+  const char *name;       // 端口名称 "GPIOA", "GPIOB"
+  void *hw_base;          // 硬件基地址（平台私有）
+  GPIO_Ops_t *ops;        // 操作函数集
+};
+
+/* 统一调用接口（包装函数，简化语法） */
+static inline int gpio_init(GPIO_Port_t *port, DRV_GPIO_Config_t *config)
+{
+  if(port && port->ops && port->ops->init)
+  {
+    return port->ops->init(port, config);
+  }
+  return DRV_ERROR;
+}
+
+static inline int gpio_write(GPIO_Port_t *port, uint16_t pin, uint8_t state)
+{
+  if(port && port->ops && port->ops->write)
+  {
+    return port->ops->write(port, pin, state);
+  }
+  return DRV_ERROR;
+}
+
+static inline int gpio_read(GPIO_Port_t *port, uint16_t pin, uint8_t *state)
+{
+  if(port && port->ops && port->ops->read)
+  {
+    return port->ops->read(port, pin, state);
+  }
+  return DRV_ERROR;
+}
+
+static inline int gpio_toggle(GPIO_Port_t *port, uint16_t pin)
+{
+  if(port && port->ops && port->ops->toggle)
+  {
+    return port->ops->toggle(port, pin);
+  }
+  return DRV_ERROR;
+}
+
+/* 平台端口实例（由平台实现提供） */
+extern GPIO_Port_t *drv_gpioa;
+extern GPIO_Port_t *drv_gpiob;
+extern GPIO_Port_t *drv_gpioc;
+extern GPIO_Port_t *drv_gpiod;
+extern GPIO_Port_t *drv_gpioe;
 
 #ifdef __cplusplus
 }
@@ -197,7 +252,7 @@ int DRV_GPIO_Toggle(GPIO_Port_t port, uint16_t pin);
 #endif /* DRV_GPIO_H */
 ```
 
-### UART 驱动接口 (drivers/drv_uart.h)
+### UART 驱动接口 (drivers/drv_uart.h) - 函数指针封装
 
 ```c
 #ifndef DRV_UART_H
@@ -209,8 +264,8 @@ int DRV_GPIO_Toggle(GPIO_Port_t port, uint16_t pin);
 extern "C" {
 #endif
 
-/* 抽象句柄类型 */
-typedef void *UART_Handle_t;
+/* 前向声明 */
+typedef struct UART_Device UART_Device_t;
 
 /* UART 实例枚举 */
 typedef enum
@@ -250,20 +305,48 @@ typedef struct
 #define DRV_TIMEOUT -3
 #endif
 
-/* 初始化/反初始化 */
-int DRV_UART_Init(DRV_UART_Config_t *config);
-int DRV_UART_DeInit(DRV_UART_Instance_t instance);
+/* UART 操作函数集 */
+typedef struct UART_Operations
+{
+  int (*init)(UART_Device_t *dev, DRV_UART_Config_t *config);
+  int (*deinit)(UART_Device_t *dev);
+  int (*transmit)(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout);
+  int (*receive)(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout);
+  int (*transmit_it)(UART_Device_t *dev, uint8_t *data, uint16_t len);
+  int (*receive_it)(UART_Device_t *dev, uint8_t *data, uint16_t len);
+} UART_Ops_t;
 
-/* 获取句柄 */
-UART_Handle_t DRV_UART_GetHandle(DRV_UART_Instance_t instance);
+/* UART 设备对象 */
+struct UART_Device
+{
+  const char *name;           // 设备名称 "UART1", "UART2"
+  DRV_UART_Instance_t instance;
+  void *hw_handle;            // 硬件句柄（平台私有）
+  UART_Ops_t *ops;            // 操作函数集
+};
 
-/* 数据传输 */
-int DRV_UART_Transmit(UART_Handle_t handle, uint8_t *data, uint16_t len,
-                      uint32_t timeout);
-int DRV_UART_Receive(UART_Handle_t handle, uint8_t *data, uint16_t len,
-                     uint32_t timeout);
-int DRV_UART_TransmitIT(UART_Handle_t handle, uint8_t *data, uint16_t len);
-int DRV_UART_ReceiveIT(UART_Handle_t handle, uint8_t *data, uint16_t len);
+/* 统一调用接口 */
+static inline int uart_transmit(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout)
+{
+  if(dev && dev->ops && dev->ops->transmit)
+  {
+    return dev->ops->transmit(dev, data, len, timeout);
+  }
+  return DRV_ERROR;
+}
+
+static inline int uart_receive(UART_Device_t *dev, uint8_t *data, uint16_t len, uint32_t timeout)
+{
+  if(dev && dev->ops && dev->ops->receive)
+  {
+    return dev->ops->receive(dev, data, len, timeout);
+  }
+  return DRV_ERROR;
+}
+
+/* 平台设备实例 */
+extern UART_Device_t *drv_uart1;
+extern UART_Device_t *drv_uart2;
 
 #ifdef __cplusplus
 }
@@ -272,7 +355,7 @@ int DRV_UART_ReceiveIT(UART_Handle_t handle, uint8_t *data, uint16_t len);
 #endif /* DRV_UART_H */
 ```
 
-### ADC 驱动接口 (drivers/drv_adc.h)
+### ADC 驱动接口 (drivers/drv_adc.h) - 函数指针封装
 
 ```c
 #ifndef DRV_ADC_H
@@ -284,8 +367,8 @@ int DRV_UART_ReceiveIT(UART_Handle_t handle, uint8_t *data, uint16_t len);
 extern "C" {
 #endif
 
-/* 抽象句柄类型 */
-typedef void *ADC_Handle_t;
+/* 前向声明 */
+typedef struct ADC_Device ADC_Device_t;
 
 /* ADC 实例枚举 */
 typedef enum
@@ -316,20 +399,48 @@ typedef struct
 #define DRV_ERROR   -1
 #endif
 
-/* 初始化/反初始化 */
-int DRV_ADC_Init(DRV_ADC_Config_t *config);
-int DRV_ADC_DeInit(DRV_ADC_Instance_t instance);
+/* ADC 操作函数集 */
+typedef struct ADC_Operations
+{
+  int (*init)(ADC_Device_t *dev, DRV_ADC_Config_t *config);
+  int (*deinit)(ADC_Device_t *dev);
+  int (*read)(ADC_Device_t *dev, uint16_t *value);
+  int (*start_dma)(ADC_Device_t *dev, uint16_t *buffer, uint16_t len);
+  int (*stop_dma)(ADC_Device_t *dev);
+} ADC_Ops_t;
 
-/* 获取句柄 */
-ADC_Handle_t DRV_ADC_GetHandle(DRV_ADC_Instance_t instance);
+/* ADC 设备对象 */
+struct ADC_Device
+{
+  const char *name;           // 设备名称 "ADC1", "ADC2"
+  DRV_ADC_Instance_t instance;
+  void *hw_handle;            // 硬件句柄（平台私有）
+  uint16_t *dma_buffer;       // DMA缓冲区
+  ADC_Ops_t *ops;             // 操作函数集
+};
 
-/* 数据读取 */
-int DRV_ADC_Read(ADC_Handle_t handle, uint16_t *value);
-int DRV_ADC_StartDMA(ADC_Handle_t handle, uint16_t *buffer, uint16_t len);
-int DRV_ADC_StopDMA(ADC_Handle_t handle);
+/* 统一调用接口 */
+static inline int adc_read(ADC_Device_t *dev, uint16_t *value)
+{
+  if(dev && dev->ops && dev->ops->read)
+  {
+    return dev->ops->read(dev, value);
+  }
+  return DRV_ERROR;
+}
 
-/* 获取DMA缓冲区 */
-uint16_t *DRV_ADC_GetDMABuffer(DRV_ADC_Instance_t instance);
+static inline int adc_start_dma(ADC_Device_t *dev, uint16_t *buffer, uint16_t len)
+{
+  if(dev && dev->ops && dev->ops->start_dma)
+  {
+    return dev->ops->start_dma(dev, buffer, len);
+  }
+  return DRV_ERROR;
+}
+
+/* 平台设备实例 */
+extern ADC_Device_t *drv_adc1;
+extern ADC_Device_t *drv_adc2;
 
 #ifdef __cplusplus
 }
@@ -367,25 +478,23 @@ void DRV_System_ErrorHandler(void);
 #ifndef BSP_CONFIG_H
 #define BSP_CONFIG_H
 
-#include "drv_gpio.h"
-#include "drv_uart.h"
-#include "drv_adc.h"
-
 /* ==================== LED 配置 ==================== */
-#define BSP_LED1_PORT         DRV_GPIOC
+#define BSP_LED1_PORT         drv_gpioc
 #define BSP_LED1_PIN          DRV_PIN_13
 
 /* ==================== 继电器配置 ==================== */
-#define BSP_RELAY_PORT        DRV_GPIOE
+#define BSP_RELAY_PORT        drv_gpioe
 #define BSP_RELAY_PIN         DRV_PIN_11
 
 /* ==================== UART 配置 ==================== */
-#define BSP_DEBUG_UART        DRV_UART2
-#define BSP_COMM_UART         DRV_UART1
+#define BSP_DEBUG_UART        drv_uart2
+#define BSP_COMM_UART         drv_uart1
 #define BSP_UART1_BAUDRATE    115200
 #define BSP_UART2_BAUDRATE    115200
 
 /* ==================== ADC 配置 ==================== */
+#define BSP_ADC1_DEVICE       drv_adc1
+#define BSP_ADC2_DEVICE       drv_adc2
 #define BSP_ADC1_BUFFER_SIZE  64
 #define BSP_ADC2_BUFFER_SIZE  64
 
@@ -394,7 +503,31 @@ void DRV_System_ErrorHandler(void);
 
 ## 数据模型
 
+### 函数指针封装架构
+
+采用 Linux 驱动风格的函数指针封装，实现运行时多态：
+
+```c
+/* 设备对象通用结构 */
+typedef struct Device_Object
+{
+  const char *name;         // 设备名称
+  void *hw_private;         // 平台私有数据
+  void *ops;                // 操作函数集指针
+} Device_Object_t;
+
+/* 操作函数集通用结构 */
+typedef struct Operations_Struct
+{
+  int (*init)(Device_Object_t *dev, void *config);
+  int (*deinit)(Device_Object_t *dev);
+  // ... 其他操作函数指针
+} Operations_t;
+```
+
 ### Driver层内部数据结构（平台实现私有）
+
+#### STM32H7 平台实现
 
 ```c
 /* drivers/stm32h7/drv_uart_impl.c 内部使用 */
@@ -403,9 +536,29 @@ typedef struct
   UART_HandleTypeDef hal_handle;
   uint8_t rx_byte;
   volatile uint8_t rx_ready;
-} UART_Instance_t;
+} STM32H7_UART_Private_t;
 
-static UART_Instance_t s_uart_instances[DRV_UART_MAX];
+/* UART 设备实例 */
+static STM32H7_UART_Private_t s_uart1_private;
+static STM32H7_UART_Private_t s_uart2_private;
+
+static UART_Device_t uart1_device = {
+  .name = "UART1",
+  .instance = DRV_UART1,
+  .hw_handle = &s_uart1_private,
+  .ops = &stm32h7_uart_ops,
+};
+
+static UART_Device_t uart2_device = {
+  .name = "UART2", 
+  .instance = DRV_UART2,
+  .hw_handle = &s_uart2_private,
+  .ops = &stm32h7_uart_ops,
+};
+
+/* 导出给上层使用 */
+UART_Device_t *drv_uart1 = &uart1_device;
+UART_Device_t *drv_uart2 = &uart2_device;
 ```
 
 ```c
@@ -416,9 +569,42 @@ typedef struct
   DMA_HandleTypeDef dma_handle;
   uint16_t *dma_buffer;
   uint16_t buffer_len;
-} ADC_Instance_t;
+} STM32H7_ADC_Private_t;
 
-static ADC_Instance_t s_adc_instances[DRV_ADC_MAX];
+static STM32H7_ADC_Private_t s_adc1_private;
+static STM32H7_ADC_Private_t s_adc2_private;
+
+static ADC_Device_t adc1_device = {
+  .name = "ADC1",
+  .instance = DRV_ADC1,
+  .hw_handle = &s_adc1_private,
+  .dma_buffer = NULL,  // 运行时分配
+  .ops = &stm32h7_adc_ops,
+};
+```
+
+#### 模拟器平台实现（预留）
+
+```c
+/* project/simulator/drivers/drv_gpio_sim.c */
+typedef struct
+{
+  uint16_t pin_states;      // 模拟引脚状态
+  char port_name[8];        // 端口名称用于日志
+} Simulator_GPIO_Private_t;
+
+static Simulator_GPIO_Private_t s_gpioc_private = {
+  .pin_states = 0,
+  .port_name = "GPIOC",
+};
+
+static GPIO_Port_t gpioc_sim_device = {
+  .name = "GPIOC_SIM",
+  .hw_base = &s_gpioc_private,
+  .ops = &simulator_gpio_ops,  // 指向模拟器实现
+};
+
+GPIO_Port_t *drv_gpioc = &gpioc_sim_device;
 ```
 
 ## 错误处理
@@ -438,3 +624,15 @@ static ADC_Instance_t s_adc_instances[DRV_ADC_MAX];
 1. **BSP层HAL隔离**: BSP层源文件不包含任何 `stm32*.h` 头文件
 2. **类型封装**: BSP层不使用 `UART_HandleTypeDef`、`ADC_HandleTypeDef` 等HAL类型
 3. **接口稳定性**: 更换平台时，Driver层接口（.h文件）保持不变
+
+### 函数指针封装属性
+
+4. **运行时多态**: 通过函数指针实现运行时绑定，支持多平台实现共存
+5. **操作函数集完整性**: 每个外设的 Operations_Struct 包含该外设所有必要操作
+6. **设备对象一致性**: 所有平台实现使用相同的 Device_Object 结构，仅 ops 指针不同
+7. **调用安全性**: inline 包装函数进行空指针检查，防止运行时错误
+
+### 模拟器支持属性
+
+8. **接口兼容性**: 模拟器实现与真实硬件使用相同的 Driver_Layer 接口
+9. **代码隔离性**: 模拟器代码位于独立目录，不影响嵌入式项目结构

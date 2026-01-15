@@ -1,7 +1,6 @@
 /**
  * @file drv_adc.h
- * @brief ADC 驱动层抽象接口
- * @note 平台无关的 ADC 操作接口定义
+ * @brief ADC driver abstraction layer (platform-independent interface)
  */
 
 #ifndef DRV_ADC_H
@@ -13,8 +12,7 @@
 extern "C" {
 #endif
 
-/* 类型定义 */
-typedef void *ADC_Handle_t;
+typedef struct ADC_Device ADC_Device_t;
 
 typedef enum
 {
@@ -36,9 +34,9 @@ typedef struct
   DRV_ADC_Instance_t instance;
   uint8_t channel;
   DRV_ADC_Resolution_t resolution;
-} ADC_Config_t;
+} DRV_ADC_Config_t;
 
-/* 返回值约定: 0 表示成功, 负值表示失败 */
+/* Return codes */
 #ifndef DRV_OK
 #define DRV_OK          0
 #define DRV_ERROR      -1
@@ -46,57 +44,72 @@ typedef struct
 #define DRV_TIMEOUT    -3
 #endif
 
-/**
- * @brief 初始化 ADC
- * @param config ADC 配置结构体指针
- * @return 0 成功, 负值失败
- */
-int DRV_ADC_Init(ADC_Config_t *config);
+typedef struct ADC_Operations
+{
+  int (*init)(ADC_Device_t *dev, DRV_ADC_Config_t *config);
+  int (*deinit)(ADC_Device_t *dev);
+  int (*read)(ADC_Device_t *dev, uint16_t *value);
+  int (*start_dma)(ADC_Device_t *dev, uint16_t *buffer, uint16_t len);
+  int (*stop_dma)(ADC_Device_t *dev);
+} ADC_Ops_t;
 
-/**
- * @brief 反初始化 ADC
- * @param handle ADC 句柄
- * @return 0 成功, 负值失败
- */
-int DRV_ADC_DeInit(ADC_Handle_t handle);
+struct ADC_Device
+{
+  const char *name;
+  DRV_ADC_Instance_t instance;
+  void *hw_handle;
+  uint16_t *dma_buffer;
+  ADC_Ops_t *ops;
+};
 
-/**
- * @brief 获取 ADC 句柄
- * @param instance ADC 实例
- * @return ADC 句柄, NULL 表示无效
- */
-ADC_Handle_t DRV_ADC_GetHandle(DRV_ADC_Instance_t instance);
+static inline int adc_init(ADC_Device_t *dev, DRV_ADC_Config_t *config)
+{
+  if(dev && dev->ops && dev->ops->init)
+  {
+    return dev->ops->init(dev, config);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 读取 ADC 值 (阻塞方式)
- * @param handle ADC 句柄
- * @param value 存储 ADC 值的指针
- * @return 0 成功, 负值失败
- */
-int DRV_ADC_Read(ADC_Handle_t handle, uint16_t *value);
+static inline int adc_deinit(ADC_Device_t *dev)
+{
+  if(dev && dev->ops && dev->ops->deinit)
+  {
+    return dev->ops->deinit(dev);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 启动 DMA 方式 ADC 采集
- * @param handle ADC 句柄
- * @param buffer DMA 缓冲区指针
- * @param len 缓冲区长度
- * @return 0 成功, 负值失败
- */
-int DRV_ADC_StartDMA(ADC_Handle_t handle, uint16_t *buffer, uint16_t len);
+static inline int adc_read(ADC_Device_t *dev, uint16_t *value)
+{
+  if(dev && dev->ops && dev->ops->read)
+  {
+    return dev->ops->read(dev, value);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 停止 DMA 方式 ADC 采集
- * @param handle ADC 句柄
- * @return 0 成功, 负值失败
- */
-int DRV_ADC_StopDMA(ADC_Handle_t handle);
+static inline int adc_start_dma(ADC_Device_t *dev, uint16_t *buffer, uint16_t len)
+{
+  if(dev && dev->ops && dev->ops->start_dma)
+  {
+    return dev->ops->start_dma(dev, buffer, len);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 获取 DMA 缓冲区
- * @param instance ADC 实例
- * @return DMA 缓冲区指针, NULL 表示无效
- */
-uint16_t *DRV_ADC_GetDMABuffer(DRV_ADC_Instance_t instance);
+static inline int adc_stop_dma(ADC_Device_t *dev)
+{
+  if(dev && dev->ops && dev->ops->stop_dma)
+  {
+    return dev->ops->stop_dma(dev);
+  }
+  return DRV_ERROR;
+}
+
+/* Platform device instances */
+extern ADC_Device_t *drv_adc1;
+extern ADC_Device_t *drv_adc2;
 
 #ifdef __cplusplus
 }

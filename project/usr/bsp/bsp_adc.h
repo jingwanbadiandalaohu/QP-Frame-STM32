@@ -25,8 +25,8 @@ extern uint16_t g_adc2_dma_buffer[ADC2_DMA_BUFFER_LENGTH];
 void BSP_ADC_Init(void);
 
 /* 获取 ADC 句柄 (供上层使用) */
-ADC_Handle_t BSP_GetAdc1Handle(void);
-ADC_Handle_t BSP_GetAdc2Handle(void);
+ADC_Device_t *BSP_GetAdc1Handle(void);
+ADC_Device_t *BSP_GetAdc2Handle(void);
 
 #ifdef __cplusplus
 }

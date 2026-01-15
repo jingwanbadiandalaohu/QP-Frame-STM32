@@ -10,14 +10,13 @@
 #define PLATFORM_STM32H7
 
 #include "stm32h7xx_hal.h"
-#include "drv_gpio.h"
 
 /* GPIO 端口映射 */
-#define PLATFORM_GPIOA    ((GPIO_Handle_t)GPIOA)
-#define PLATFORM_GPIOB    ((GPIO_Handle_t)GPIOB)
-#define PLATFORM_GPIOC    ((GPIO_Handle_t)GPIOC)
-#define PLATFORM_GPIOD    ((GPIO_Handle_t)GPIOD)
-#define PLATFORM_GPIOE    ((GPIO_Handle_t)GPIOE)
+#define PLATFORM_GPIOA    GPIOA
+#define PLATFORM_GPIOB    GPIOB
+#define PLATFORM_GPIOC    GPIOC
+#define PLATFORM_GPIOD    GPIOD
+#define PLATFORM_GPIOE    GPIOE
 
 /* GPIO 引脚映射 */
 #define PLATFORM_PIN_0    GPIO_PIN_0

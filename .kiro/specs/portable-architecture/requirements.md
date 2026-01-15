@@ -41,6 +41,8 @@ project/stm32h750vbt6/
 - **Port_Interface**: 移植接口，定义平台相关代码必须实现的函数原型
 - **Platform_Config**: 平台配置文件，包含 MCU 特定的宏定义和类型映射
 - **CMSIS_RTOS2**: ARM 定义的 RTOS 标准接口，支持 FreeRTOS、RTX 等多种 RTOS 实现
+- **Operations_Struct**: 操作函数集结构体，包含函数指针的结构体，类似 Linux 驱动的 file_operations
+- **Device_Object**: 设备对象，包含私有数据和操作函数集指针的结构体，实现运行时多态
 
 ## 需求
 
@@ -124,3 +126,31 @@ project/stm32h750vbt6/
 2. 构建系统应继续支持现有的多工具链配置（Keil、GCC、EIDE）
 3. 当为 STM32H7 构建时，构建系统应自动包含 `platform/stm32h7/` 源文件并排除其他平台目录
 4. 当添加新平台时，构建系统应仅需添加平台目录并更新相应的构建配置文件
+
+### 需求 8: 函数指针封装（Linux 驱动风格）
+
+**用户故事:** 作为嵌入式开发者，我希望驱动层采用函数指针封装方式（类似 Linux 驱动的 file_operations），以便实现运行时多态，支持多平台实现共存和动态切换。
+
+#### 验收标准
+
+1. 每个外设驱动应定义 Operations_Struct（操作函数集），包含该外设所有操作的函数指针
+2. WHEN 定义 GPIO 操作函数集时，Operations_Struct 应包含：`init`、`deinit`、`write`、`read`、`toggle` 函数指针
+3. WHEN 定义 UART 操作函数集时，Operations_Struct 应包含：`init`、`deinit`、`transmit`、`receive`、`transmit_it`、`receive_it` 函数指针
+4. WHEN 定义 ADC 操作函数集时，Operations_Struct 应包含：`init`、`deinit`、`read`、`start_dma`、`stop_dma` 函数指针
+5. 每个外设应定义 Device_Object 结构体，包含：设备名称、私有数据指针（hw_base）、操作函数集指针（ops）
+6. 平台实现应提供静态的 Operations_Struct 实例，并在 Device_Object 中引用
+7. BSP_Layer 应通过 Device_Object 的 ops 指针间接调用驱动函数，实现运行时绑定
+8. 当同时编译多个平台实现时，不同平台的 Operations_Struct 实例应能共存而不产生链接冲突
+9. Driver_Layer 应提供 inline 包装函数，简化调用语法并进行空指针检查
+
+### 需求 9: 模拟器支持（预留扩展）
+
+**用户故事:** 作为嵌入式开发者，我希望架构预留模拟器支持能力，以便将来可以在 Windows PC 上进行逻辑测试，而无需修改现有架构。
+
+#### 验收标准
+
+1. 架构应支持添加 simulator 平台实现，与真实硬件实现使用相同的 Driver_Layer 接口
+2. 模拟器相关代码应放置在与 project 同级的独立目录（如 `simulator/`），不影响嵌入式项目结构
+3. 模拟器实现应与真实硬件实现使用相同的 Device_Object 和 Operations_Struct 结构
+4. 应用层和 BSP 层代码在真实硬件和模拟器之间切换时，不应需要任何修改
+5. 当前阶段仅需确保架构设计支持此扩展，不要求实现具体的模拟器代码

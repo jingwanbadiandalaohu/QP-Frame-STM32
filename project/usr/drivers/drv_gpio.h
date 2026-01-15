@@ -1,7 +1,6 @@
 /**
  * @file drv_gpio.h
- * @brief GPIO 驱动层抽象接口
- * @note 平台无关的 GPIO 操作接口定义
+ * @brief GPIO driver abstraction layer (platform-independent interface)
  */
 
 #ifndef DRV_GPIO_H
@@ -13,17 +12,48 @@
 extern "C" {
 #endif
 
-/* 类型定义 */
-typedef void *GPIO_Handle_t;
+typedef struct GPIO_Port GPIO_Port_t;
 
-/* 平台端口定义（由平台实现提供） */
-extern GPIO_Handle_t DRV_GPIOA;
-extern GPIO_Handle_t DRV_GPIOB;
-extern GPIO_Handle_t DRV_GPIOC;
-extern GPIO_Handle_t DRV_GPIOD;
-extern GPIO_Handle_t DRV_GPIOE;
+typedef enum
+{
+  DRV_GPIO_MODE_INPUT,
+  DRV_GPIO_MODE_OUTPUT_PP,
+  DRV_GPIO_MODE_OUTPUT_OD,
+  DRV_GPIO_MODE_AF_PP,
+  DRV_GPIO_MODE_AF_OD,
+  DRV_GPIO_MODE_ANALOG
+} DRV_GPIO_Mode_t;
 
-/* 引脚定义 */
+typedef enum
+{
+  DRV_GPIO_PULL_NONE,
+  DRV_GPIO_PULL_UP,
+  DRV_GPIO_PULL_DOWN
+} DRV_GPIO_Pull_t;
+
+typedef enum
+{
+  DRV_GPIO_SPEED_LOW,
+  DRV_GPIO_SPEED_MEDIUM,
+  DRV_GPIO_SPEED_HIGH,
+  DRV_GPIO_SPEED_VERY_HIGH
+} DRV_GPIO_Speed_t;
+
+typedef struct
+{
+  uint16_t pin;
+  DRV_GPIO_Mode_t mode;
+  DRV_GPIO_Pull_t pull;
+  DRV_GPIO_Speed_t speed;
+} DRV_GPIO_Config_t;
+
+/* Return codes */
+#define DRV_OK          0
+#define DRV_ERROR      -1
+#define DRV_BUSY       -2
+#define DRV_TIMEOUT    -3
+
+/* Pin definitions */
 #define DRV_PIN_0    (1U << 0)
 #define DRV_PIN_1    (1U << 1)
 #define DRV_PIN_2    (1U << 2)
@@ -41,86 +71,73 @@ extern GPIO_Handle_t DRV_GPIOE;
 #define DRV_PIN_14   (1U << 14)
 #define DRV_PIN_15   (1U << 15)
 
-typedef enum
+typedef struct GPIO_Operations
 {
-  DRV_GPIO_MODE_INPUT,
-  DRV_GPIO_MODE_OUTPUT_PP,
-  DRV_GPIO_MODE_OUTPUT_OD,
-  DRV_GPIO_MODE_AF_PP,
-  DRV_GPIO_MODE_AF_OD,
-  DRV_GPIO_MODE_ANALOG
-} GPIO_Mode_t;
+  int (*init)(GPIO_Port_t *port, DRV_GPIO_Config_t *config);
+  int (*deinit)(GPIO_Port_t *port, uint16_t pin);
+  int (*write)(GPIO_Port_t *port, uint16_t pin, uint8_t state);
+  int (*read)(GPIO_Port_t *port, uint16_t pin, uint8_t *state);
+  int (*toggle)(GPIO_Port_t *port, uint16_t pin);
+} GPIO_Ops_t;
 
-typedef enum
+struct GPIO_Port
 {
-  DRV_GPIO_PULL_NONE,
-  DRV_GPIO_PULL_UP,
-  DRV_GPIO_PULL_DOWN
-} GPIO_Pull_t;
+  const char *name;
+  void *hw_base;
+  GPIO_Ops_t *ops;
+};
 
-typedef enum
+static inline int gpio_init(GPIO_Port_t *port, DRV_GPIO_Config_t *config)
 {
-  DRV_GPIO_SPEED_LOW,
-  DRV_GPIO_SPEED_MEDIUM,
-  DRV_GPIO_SPEED_HIGH,
-  DRV_GPIO_SPEED_VERY_HIGH
-} GPIO_Speed_t;
+  if(port && port->ops && port->ops->init)
+  {
+    return port->ops->init(port, config);
+  }
+  return DRV_ERROR;
+}
 
-typedef struct
+static inline int gpio_deinit(GPIO_Port_t *port, uint16_t pin)
 {
-  GPIO_Handle_t port;
-  uint16_t pin;
-  GPIO_Mode_t mode;
-  GPIO_Pull_t pull;
-  GPIO_Speed_t speed;
-} GPIO_Config_t;
+  if(port && port->ops && port->ops->deinit)
+  {
+    return port->ops->deinit(port, pin);
+  }
+  return DRV_ERROR;
+}
 
-/* 返回值约定: 0 表示成功, 负值表示失败 */
-#define DRV_OK          0
-#define DRV_ERROR      -1
-#define DRV_BUSY       -2
-#define DRV_TIMEOUT    -3
+static inline int gpio_write(GPIO_Port_t *port, uint16_t pin, uint8_t state)
+{
+  if(port && port->ops && port->ops->write)
+  {
+    return port->ops->write(port, pin, state);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 初始化 GPIO 引脚
- * @param config GPIO 配置结构体指针
- * @return 0 成功, 负值失败
- */
-int DRV_GPIO_Init(GPIO_Config_t *config);
+static inline int gpio_read(GPIO_Port_t *port, uint16_t pin, uint8_t *state)
+{
+  if(port && port->ops && port->ops->read)
+  {
+    return port->ops->read(port, pin, state);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 反初始化 GPIO 引脚
- * @param port GPIO 端口句柄
- * @param pin GPIO 引脚号
- * @return 0 成功, 负值失败
- */
-int DRV_GPIO_DeInit(GPIO_Handle_t port, uint16_t pin);
+static inline int gpio_toggle(GPIO_Port_t *port, uint16_t pin)
+{
+  if(port && port->ops && port->ops->toggle)
+  {
+    return port->ops->toggle(port, pin);
+  }
+  return DRV_ERROR;
+}
 
-/**
- * @brief 写 GPIO 引脚状态
- * @param port GPIO 端口句柄
- * @param pin GPIO 引脚号
- * @param state 引脚状态 (0 或 1)
- * @return 0 成功, 负值失败
- */
-int DRV_GPIO_Write(GPIO_Handle_t port, uint16_t pin, uint8_t state);
-
-/**
- * @brief 读 GPIO 引脚状态
- * @param port GPIO 端口句柄
- * @param pin GPIO 引脚号
- * @param state 存储引脚状态的指针
- * @return 0 成功, 负值失败
- */
-int DRV_GPIO_Read(GPIO_Handle_t port, uint16_t pin, uint8_t *state);
-
-/**
- * @brief 翻转 GPIO 引脚状态
- * @param port GPIO 端口句柄
- * @param pin GPIO 引脚号
- * @return 0 成功, 负值失败
- */
-int DRV_GPIO_Toggle(GPIO_Handle_t port, uint16_t pin);
+/* Platform port instances */
+extern GPIO_Port_t *drv_gpioa;
+extern GPIO_Port_t *drv_gpiob;
+extern GPIO_Port_t *drv_gpioc;
+extern GPIO_Port_t *drv_gpiod;
+extern GPIO_Port_t *drv_gpioe;
 
 #ifdef __cplusplus
 }

@@ -1,18 +1,12 @@
 /**
  * @file drv_gpio_impl.c
- * @brief STM32H7 平台 GPIO 驱动实现
+ * @brief STM32H7 GPIO driver implementation
  */
 
 #include "drv_gpio.h"
 #include "platform_config.h"
 
-GPIO_Handle_t DRV_GPIOA = (GPIO_Handle_t)GPIOA;
-GPIO_Handle_t DRV_GPIOB = (GPIO_Handle_t)GPIOB;
-GPIO_Handle_t DRV_GPIOC = (GPIO_Handle_t)GPIOC;
-GPIO_Handle_t DRV_GPIOD = (GPIO_Handle_t)GPIOD;
-GPIO_Handle_t DRV_GPIOE = (GPIO_Handle_t)GPIOE;
-
-static void DRV_GPIO_EnableClock(GPIO_TypeDef *port)
+static void drv_gpio_enable_clock(GPIO_TypeDef *port)
 {
   if(port == GPIOA)
   {
@@ -36,22 +30,19 @@ static void DRV_GPIO_EnableClock(GPIO_TypeDef *port)
   }
 }
 
-/**
- * @brief 初始化 GPIO 引脚
- */
-int DRV_GPIO_Init(GPIO_Config_t *config)
+static int stm32h7_gpio_init(GPIO_Port_t *port, DRV_GPIO_Config_t *config)
 {
-  if(config == NULL)
+  GPIO_InitTypeDef gpio_init = {0};
+  GPIO_TypeDef *hw_port = NULL;
+
+  if(port == NULL || config == NULL)
   {
     return DRV_ERROR;
   }
 
-  GPIO_TypeDef *port = (GPIO_TypeDef *)config->port;
-  GPIO_InitTypeDef gpio_init = {0};
-
+  hw_port = (GPIO_TypeDef *)port->hw_base;
   gpio_init.Pin = config->pin;
 
-  /* 模式映射 */
   switch(config->mode)
   {
     case DRV_GPIO_MODE_INPUT:
@@ -76,7 +67,6 @@ int DRV_GPIO_Init(GPIO_Config_t *config)
       return DRV_ERROR;
   }
 
-  /* 上下拉映射 */
   switch(config->pull)
   {
     case DRV_GPIO_PULL_NONE:
@@ -93,7 +83,6 @@ int DRV_GPIO_Init(GPIO_Config_t *config)
       break;
   }
 
-  /* 速度映射 */
   switch(config->speed)
   {
     case DRV_GPIO_SPEED_LOW:
@@ -113,69 +102,78 @@ int DRV_GPIO_Init(GPIO_Config_t *config)
       break;
   }
 
-  DRV_GPIO_EnableClock(port);
-  HAL_GPIO_Init(port, &gpio_init);
+  drv_gpio_enable_clock(hw_port);
+  HAL_GPIO_Init(hw_port, &gpio_init);
 
   return DRV_OK;
 }
 
-/**
- * @brief 反初始化 GPIO 引脚
- */
-int DRV_GPIO_DeInit(GPIO_Handle_t port, uint16_t pin)
+static int stm32h7_gpio_deinit(GPIO_Port_t *port, uint16_t pin)
 {
   if(port == NULL)
   {
     return DRV_ERROR;
   }
 
-  HAL_GPIO_DeInit((GPIO_TypeDef *)port, pin);
+  HAL_GPIO_DeInit((GPIO_TypeDef *)port->hw_base, pin);
 
   return DRV_OK;
 }
 
-/**
- * @brief 写 GPIO 引脚状态
- */
-int DRV_GPIO_Write(GPIO_Handle_t port, uint16_t pin, uint8_t state)
+static int stm32h7_gpio_write(GPIO_Port_t *port, uint16_t pin, uint8_t state)
 {
   if(port == NULL)
   {
     return DRV_ERROR;
   }
 
-  HAL_GPIO_WritePin((GPIO_TypeDef *)port, pin,
+  HAL_GPIO_WritePin((GPIO_TypeDef *)port->hw_base, pin,
                     state ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
   return DRV_OK;
 }
 
-/**
- * @brief 读 GPIO 引脚状态
- */
-int DRV_GPIO_Read(GPIO_Handle_t port, uint16_t pin, uint8_t *state)
+static int stm32h7_gpio_read(GPIO_Port_t *port, uint16_t pin, uint8_t *state)
 {
   if(port == NULL || state == NULL)
   {
     return DRV_ERROR;
   }
 
-  *state = (uint8_t)HAL_GPIO_ReadPin((GPIO_TypeDef *)port, pin);
+  *state = (uint8_t)HAL_GPIO_ReadPin((GPIO_TypeDef *)port->hw_base, pin);
 
   return DRV_OK;
 }
 
-/**
- * @brief 翻转 GPIO 引脚状态
- */
-int DRV_GPIO_Toggle(GPIO_Handle_t port, uint16_t pin)
+static int stm32h7_gpio_toggle(GPIO_Port_t *port, uint16_t pin)
 {
   if(port == NULL)
   {
     return DRV_ERROR;
   }
 
-  HAL_GPIO_TogglePin((GPIO_TypeDef *)port, pin);
+  HAL_GPIO_TogglePin((GPIO_TypeDef *)port->hw_base, pin);
 
   return DRV_OK;
 }
+
+static GPIO_Ops_t stm32h7_gpio_ops =
+{
+  .init = stm32h7_gpio_init,
+  .deinit = stm32h7_gpio_deinit,
+  .write = stm32h7_gpio_write,
+  .read = stm32h7_gpio_read,
+  .toggle = stm32h7_gpio_toggle
+};
+
+static GPIO_Port_t gpioa_device = {"GPIOA", GPIOA, &stm32h7_gpio_ops};
+static GPIO_Port_t gpiob_device = {"GPIOB", GPIOB, &stm32h7_gpio_ops};
+static GPIO_Port_t gpioc_device = {"GPIOC", GPIOC, &stm32h7_gpio_ops};
+static GPIO_Port_t gpiod_device = {"GPIOD", GPIOD, &stm32h7_gpio_ops};
+static GPIO_Port_t gpioe_device = {"GPIOE", GPIOE, &stm32h7_gpio_ops};
+
+GPIO_Port_t *drv_gpioa = &gpioa_device;
+GPIO_Port_t *drv_gpiob = &gpiob_device;
+GPIO_Port_t *drv_gpioc = &gpioc_device;
+GPIO_Port_t *drv_gpiod = &gpiod_device;
+GPIO_Port_t *drv_gpioe = &gpioe_device;
