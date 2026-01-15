@@ -74,3 +74,27 @@ void MyFunction(void)
 ## 代码行规范
 - 每行不超过100字符
 - 一行只做一件事，避免复合语句
+
+## CMakeLists.txt 注释规范
+- 文件路径注释必须与 `#` 号对齐，使用空格填充
+- 注释内容简洁明了，说明文件用途
+
+正确示例：
+```cmake
+../Middlewares/Third_Party/FreeRTOS/tasks.c                                         #任务代码
+../Middlewares/Third_Party/FreeRTOS/queue.c                                         #队列代码
+../Middlewares/Third_Party/FreeRTOS/list.c                                          #列表代码
+../Middlewares/Third_Party/FreeRTOS/timers.c                                        #定时器代码
+../Middlewares/Third_Party/FreeRTOS/event_groups.c                                  #事件组代码
+../Middlewares/Third_Party/FreeRTOS/stream_buffer.c                                 #流缓冲区代码
+../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1/port.c                #FreeRTOS针对Cortex-M7的移植文件
+../Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c                       #FreeRTOS内存管理方案
+../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source/cmsis_os2.c   #CMSIS-RTOS2接口文件
+```
+
+错误示例：
+```cmake
+../Middlewares/Third_Party/FreeRTOS/tasks.c         #任务代码
+../Middlewares/Third_Party/FreeRTOS/queue.c       #队列代码
+../Middlewares/Third_Party/FreeRTOS/list.c        #列表代码
+```
