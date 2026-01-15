@@ -1,6 +1,10 @@
 /**
- * @file bsp_gpio.c
- * @brief GPIO 板级支持包实现
+ * @file    bsp_gpio.c
+ * @author  Dylan
+ * @date    2026-01-15
+ * @brief   GPIO板级支持包实现
+ *
+ * @details 实现LED和继电器的初始化及控制函数。
  */
 
 #include "bsp_gpio.h"
@@ -9,7 +13,13 @@
 /* ==================== 初始化函数 ==================== */
 
 /**
- * @brief GPIO 初始化函数
+ * @brief   GPIO初始化函数
+ *
+ * @details 配置LED1(PC13)和继电器(PE11)为推挽输出模式，
+ *          默认LED1点亮、继电器吸合。
+ *
+ * @param   None
+ * @return  None
  */
 void BSP_GPIO_Init(void)
 {
@@ -37,32 +47,65 @@ void BSP_GPIO_Init(void)
 
 /* ==================== 便捷函数 ==================== */
 
+/**
+ * @brief   LED1状态翻转
+ *
+ * @param   None
+ * @return  None
+ */
 void BSP_LED1_Toggle(void)
 {
-  /* LED1 状态翻转 */
   gpio_toggle(LED1_PORT, LED1_PIN);
 }
 
+/**
+ * @brief   LED1点亮
+ *
+ * @param   None
+ * @return  None
+ *
+ * @note    LED1低电平点亮
+ */
 void BSP_LED1_On(void)
 {
-  /* LED1 低电平点亮 */
   gpio_write(LED1_PORT, LED1_PIN, 0);
 }
 
+/**
+ * @brief   LED1熄灭
+ *
+ * @param   None
+ * @return  None
+ *
+ * @note    LED1高电平熄灭
+ */
 void BSP_LED1_Off(void)
 {
-  /* LED1 高电平熄灭 */
   gpio_write(LED1_PORT, LED1_PIN, 1);
 }
 
+/**
+ * @brief   继电器吸合
+ *
+ * @param   None
+ * @return  None
+ *
+ * @note    继电器高电平吸合
+ */
 void BSP_Relay_On(void)
 {
-  /* 继电器高电平吸合 */
   gpio_write(Relay_PORT, Relay_PIN, 1);
 }
 
+/**
+ * @brief   继电器释放
+ *
+ * @param   None
+ * @return  None
+ *
+ * @note    继电器低电平释放
+ */
 void BSP_Relay_Off(void)
 {
-  /* 继电器低电平释放 */
   gpio_write(Relay_PORT, Relay_PIN, 0);
 }

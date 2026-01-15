@@ -1,11 +1,31 @@
 /**
- * @file drv_system_impl.c
- * @brief STM32H7 平台系统驱动实现
+ * @file    drv_system_impl.c
+ * @author  Dylan
+ * @date    2026-01-15
+ * @brief   STM32H7平台系统驱动实现
+ *
+ * @details 实现系统初始化，包括HAL初始化和时钟配置。
+ *          - 系统时钟: HSE 25MHz → PLL1 → 480MHz
+ *          - ADC时钟: HSE 25MHz → PLL2 → 50MHz
  */
 
 #include "drv_system.h"
 #include "platform_config.h"
 
+/* ==================== 私有函数 ==================== */
+
+/**
+ * @brief   系统时钟配置
+ *
+ * @details 配置系统时钟为480MHz：
+ *          - HSE: 25MHz外部晶振
+ *          - PLL1: 系统主时钟 480MHz
+ *          - PLL2: ADC时钟 50MHz
+ *          - AHB/APB分频配置
+ *
+ * @param   None
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int DRV_SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -78,6 +98,16 @@ static int DRV_SystemClock_Config(void)
   return DRV_OK;
 }
 
+/* ==================== 公共接口函数 ==================== */
+
+/**
+ * @brief   系统初始化
+ *
+ * @details 执行HAL底层初始化和系统时钟配置
+ *
+ * @param   None
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 int DRV_System_Init(void)
 {
   /* HAL 底层初始化：中断优先级、Systick 等 */
@@ -90,6 +120,16 @@ int DRV_System_Init(void)
   return DRV_SystemClock_Config();
 }
 
+/**
+ * @brief   系统错误处理
+ *
+ * @details 关闭中断并进入无限循环，用于不可恢复的错误
+ *
+ * @param   None
+ * @return  None（不返回）
+ *
+ * @warning 此函数不会返回
+ */
 void DRV_System_ErrorHandler(void)
 {
   /* 发生致命错误后关闭中断并停机等待 */

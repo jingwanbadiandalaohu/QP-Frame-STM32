@@ -1,29 +1,51 @@
 /**
- * @file drv_adc_impl.c
- * @brief STM32H7 ADC driver implementation
+ * @file    drv_adc_impl.c
+ * @author  Dylan
+ * @date    2026-01-15
+ * @brief   STM32H7 ADC驱动实现
+ *
+ * @details 实现ADC1和ADC2的HAL层封装，支持轮询读取和DMA连续采集。
+ *          - ADC1: PB1 - ADC_CHANNEL_5
+ *          - ADC2: PA6 - ADC_CHANNEL_3
  */
 
 #include "drv_adc.h"
 #include "platform_config.h"
 
-#define ADC1_INSTANCE                ADC1
-#define ADC2_INSTANCE                ADC2
+/* ==================== ADC硬件配置 ==================== */
 
-#define ADC1_CHANNEL                 ADC_CHANNEL_5
-#define ADC2_CHANNEL                 ADC_CHANNEL_3
+#define ADC1_INSTANCE                ADC1          /**< ADC1外设实例 */
+#define ADC2_INSTANCE                ADC2          /**< ADC2外设实例 */
 
+#define ADC1_CHANNEL                 ADC_CHANNEL_5 /**< ADC1通道: PB1 */
+#define ADC2_CHANNEL                 ADC_CHANNEL_3 /**< ADC2通道: PA6 */
+
+/* ==================== 私有数据结构 ==================== */
+
+/**
+ * @brief ADC私有数据结构
+ */
 typedef struct
 {
-  ADC_HandleTypeDef hal_handle;
-  DMA_HandleTypeDef dma_handle;
-  uint16_t *dma_buffer;
-  uint16_t buffer_len;
-  uint8_t initialized;
+  ADC_HandleTypeDef hal_handle;  /**< HAL ADC句柄 */
+  DMA_HandleTypeDef dma_handle;  /**< HAL DMA句柄 */
+  uint16_t *dma_buffer;          /**< DMA缓冲区指针 */
+  uint16_t buffer_len;           /**< 缓冲区长度 */
+  uint8_t initialized;           /**< 初始化标志 */
 } ADC_Private_t;
 
-static ADC_Private_t s_adc1_private = {0};
-static ADC_Private_t s_adc2_private = {0};
+static ADC_Private_t s_adc1_private = {0};  /**< ADC1私有数据 */
+static ADC_Private_t s_adc2_private = {0};  /**< ADC2私有数据 */
 
+/* ==================== 私有辅助函数 ==================== */
+
+/**
+ * @brief   从HAL句柄获取私有数据指针
+ *
+ * @param[in] hadc  HAL ADC句柄
+ *
+ * @return  私有数据指针，无效时返回NULL
+ */
 static ADC_Private_t *drv_adc_private_from_hal(ADC_HandleTypeDef *hadc)
 {
   if(hadc == NULL)
@@ -43,6 +65,13 @@ static ADC_Private_t *drv_adc_private_from_hal(ADC_HandleTypeDef *hadc)
   return NULL;
 }
 
+/**
+ * @brief   从设备指针获取私有数据指针
+ *
+ * @param[in] dev  ADC设备指针
+ *
+ * @return  私有数据指针，无效时返回NULL
+ */
 static ADC_Private_t *drv_adc_private_from_dev(ADC_Device_t *dev)
 {
   if(dev == NULL)
@@ -53,6 +82,13 @@ static ADC_Private_t *drv_adc_private_from_dev(ADC_Device_t *dev)
   return (ADC_Private_t *)dev->hw_handle;
 }
 
+/**
+ * @brief   分辨率枚举转HAL值
+ *
+ * @param[in] resolution  驱动层分辨率枚举
+ *
+ * @return  HAL分辨率宏值
+ */
 static uint32_t drv_adc_map_resolution(DRV_ADC_Resolution_t resolution)
 {
   switch(resolution)
@@ -69,6 +105,17 @@ static uint32_t drv_adc_map_resolution(DRV_ADC_Resolution_t resolution)
   }
 }
 
+/* ==================== HAL MSP回调函数 ==================== */
+
+/**
+ * @brief   ADC MSP初始化回调
+ *
+ * @details 配置GPIO为模拟模式，初始化DMA通道
+ *
+ * @param[in] hadc  HAL ADC句柄
+ *
+ * @return  None
+ */
 void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -132,6 +179,13 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
   }
 }
 
+/**
+ * @brief   ADC MSP反初始化回调
+ *
+ * @param[in] hadc  HAL ADC句柄
+ *
+ * @return  None
+ */
 void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc)
 {
   if(hadc->Instance == ADC1_INSTANCE)
@@ -146,6 +200,18 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc)
   }
 }
 
+/* ==================== 驱动操作函数实现 ==================== */
+
+/**
+ * @brief   ADC初始化
+ *
+ * @details 配置ADC参数、通道、执行校准
+ *
+ * @param[in] dev     设备指针
+ * @param[in] config  配置参数
+ *
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int stm32h7_adc_init(ADC_Device_t *dev, DRV_ADC_Config_t *config)
 {
   ADC_ChannelConfTypeDef sConfig = {0};
@@ -224,6 +290,13 @@ static int stm32h7_adc_init(ADC_Device_t *dev, DRV_ADC_Config_t *config)
   return DRV_OK;
 }
 
+/**
+ * @brief   ADC反初始化
+ *
+ * @param[in] dev  设备指针
+ *
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int stm32h7_adc_deinit(ADC_Device_t *dev)
 {
   ADC_Private_t *priv = drv_adc_private_from_dev(dev);
@@ -241,6 +314,14 @@ static int stm32h7_adc_deinit(ADC_Device_t *dev)
   return DRV_OK;
 }
 
+/**
+ * @brief   ADC轮询读取
+ *
+ * @param[in]  dev    设备指针
+ * @param[out] value  读取值存储指针
+ *
+ * @return  DRV_OK成功，DRV_TIMEOUT超时，DRV_ERROR失败
+ */
 static int stm32h7_adc_read(ADC_Device_t *dev, uint16_t *value)
 {
   ADC_Private_t *priv = drv_adc_private_from_dev(dev);
@@ -271,6 +352,15 @@ static int stm32h7_adc_read(ADC_Device_t *dev, uint16_t *value)
   return DRV_OK;
 }
 
+/**
+ * @brief   启动ADC DMA采集
+ *
+ * @param[in]  dev     设备指针
+ * @param[out] buffer  DMA缓冲区
+ * @param[in]  len     缓冲区长度
+ *
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int stm32h7_adc_start_dma(ADC_Device_t *dev, uint16_t *buffer, uint16_t len)
 {
   ADC_Private_t *priv = drv_adc_private_from_dev(dev);
@@ -294,6 +384,13 @@ static int stm32h7_adc_start_dma(ADC_Device_t *dev, uint16_t *buffer, uint16_t l
   return DRV_OK;
 }
 
+/**
+ * @brief   停止ADC DMA采集
+ *
+ * @param[in] dev  设备指针
+ *
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int stm32h7_adc_stop_dma(ADC_Device_t *dev)
 {
   ADC_Private_t *priv = drv_adc_private_from_dev(dev);
@@ -314,6 +411,11 @@ static int stm32h7_adc_stop_dma(ADC_Device_t *dev)
   return DRV_OK;
 }
 
+/* ==================== 操作函数集与设备实例 ==================== */
+
+/**
+ * @brief STM32H7 ADC操作函数集
+ */
 static ADC_Ops_t stm32h7_adc_ops =
 {
   .init = stm32h7_adc_init,
@@ -323,6 +425,9 @@ static ADC_Ops_t stm32h7_adc_ops =
   .stop_dma = stm32h7_adc_stop_dma
 };
 
+/**
+ * @brief ADC1设备实例
+ */
 static ADC_Device_t adc1_device =
 {
   .name = "ADC1",
@@ -332,6 +437,9 @@ static ADC_Device_t adc1_device =
   .ops = &stm32h7_adc_ops
 };
 
+/**
+ * @brief ADC2设备实例
+ */
 static ADC_Device_t adc2_device =
 {
   .name = "ADC2",
@@ -341,5 +449,5 @@ static ADC_Device_t adc2_device =
   .ops = &stm32h7_adc_ops
 };
 
-ADC_Device_t *drv_adc1 = &adc1_device;
-ADC_Device_t *drv_adc2 = &adc2_device;
+ADC_Device_t *drv_adc1 = &adc1_device;  /**< ADC1全局设备指针 */
+ADC_Device_t *drv_adc2 = &adc2_device;  /**< ADC2全局设备指针 */

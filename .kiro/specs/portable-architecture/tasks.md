@@ -69,30 +69,10 @@
     - 移除平台特定的宏定义
     - _需求: 3.1, 3.2_
 
-- [ ] 4. 预留模拟器扩展接口
-  - [ ] 4.1 创建模拟器目录结构
-    - 创建 `project/simulator/` 目录
-    - 创建 `project/simulator/drivers/simulator/` 子目录
-    - 创建占位文件 `project/simulator/README.md`
-    - _需求: 9.2_
-  - [ ] 4.2 创建模拟器接口占位文件
-    - 创建 `project/simulator/drivers/simulator/drv_gpio_sim.c`（空实现）
-    - 创建 `project/simulator/drivers/simulator/drv_uart_sim.c`（空实现）
-    - 创建 `project/simulator/drivers/simulator/drv_adc_sim.c`（空实现）
-    - 添加注释说明这是预留扩展
-    - _需求: 9.1, 9.3_
-
-- [ ] 5. 更新构建系统
-  - [ ] 5.1 更新 `usr/CMakeLists.txt`
-    - 确保包含所有新的 drv_*_impl.c 文件
-    - 添加条件编译支持（为将来多平台做准备）
-    - _需求: 7.3_
-
-- [ ] 6. 检查点 - 编译和功能验证
+- [ ] 4. 检查点 - 编译和功能验证
   - 确保项目能够成功编译
   - 验证 BSP 层通过函数指针调用 Driver 层
   - 验证设备对象和操作函数集正确绑定
-  - 验证模拟器目录结构创建完成
   - 如有问题请询问用户
 
 ## 备注

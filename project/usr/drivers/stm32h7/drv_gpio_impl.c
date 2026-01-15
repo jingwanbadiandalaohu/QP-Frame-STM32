@@ -1,11 +1,24 @@
 /**
- * @file drv_gpio_impl.c
- * @brief STM32H7 GPIO driver implementation
+ * @file    drv_gpio_impl.c
+ * @author  Dylan
+ * @date    2026-01-15
+ * @brief   STM32H7 GPIO驱动实现
+ *
+ * @details 实现GPIO端口的HAL层封装，支持输入/输出/复用等模式配置。
  */
 
 #include "drv_gpio.h"
 #include "platform_config.h"
 
+/* ==================== 私有辅助函数 ==================== */
+
+/**
+ * @brief   使能GPIO端口时钟
+ *
+ * @param[in] port  GPIO端口基地址
+ *
+ * @return  None
+ */
 static void drv_gpio_enable_clock(GPIO_TypeDef *port)
 {
   if(port == GPIOA)
@@ -30,6 +43,16 @@ static void drv_gpio_enable_clock(GPIO_TypeDef *port)
   }
 }
 
+/* ==================== 驱动操作函数实现 ==================== */
+
+/**
+ * @brief   GPIO初始化
+ *
+ * @param[in] port    端口指针
+ * @param[in] config  配置参数
+ *
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int stm32h7_gpio_init(GPIO_Port_t *port, DRV_GPIO_Config_t *config)
 {
   GPIO_InitTypeDef gpio_init = {0};
@@ -108,6 +131,14 @@ static int stm32h7_gpio_init(GPIO_Port_t *port, DRV_GPIO_Config_t *config)
   return DRV_OK;
 }
 
+/**
+ * @brief   GPIO反初始化
+ *
+ * @param[in] port  端口指针
+ * @param[in] pin   引脚掩码
+ *
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int stm32h7_gpio_deinit(GPIO_Port_t *port, uint16_t pin)
 {
   if(port == NULL)
@@ -120,6 +151,15 @@ static int stm32h7_gpio_deinit(GPIO_Port_t *port, uint16_t pin)
   return DRV_OK;
 }
 
+/**
+ * @brief   GPIO写电平
+ *
+ * @param[in] port   端口指针
+ * @param[in] pin    引脚掩码
+ * @param[in] state  电平状态
+ *
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int stm32h7_gpio_write(GPIO_Port_t *port, uint16_t pin, uint8_t state)
 {
   if(port == NULL)
@@ -133,6 +173,15 @@ static int stm32h7_gpio_write(GPIO_Port_t *port, uint16_t pin, uint8_t state)
   return DRV_OK;
 }
 
+/**
+ * @brief   GPIO读电平
+ *
+ * @param[in]  port   端口指针
+ * @param[in]  pin    引脚掩码
+ * @param[out] state  电平状态存储指针
+ *
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int stm32h7_gpio_read(GPIO_Port_t *port, uint16_t pin, uint8_t *state)
 {
   if(port == NULL || state == NULL)
@@ -145,6 +194,14 @@ static int stm32h7_gpio_read(GPIO_Port_t *port, uint16_t pin, uint8_t *state)
   return DRV_OK;
 }
 
+/**
+ * @brief   GPIO翻转电平
+ *
+ * @param[in] port  端口指针
+ * @param[in] pin   引脚掩码
+ *
+ * @return  DRV_OK成功，DRV_ERROR失败
+ */
 static int stm32h7_gpio_toggle(GPIO_Port_t *port, uint16_t pin)
 {
   if(port == NULL)
@@ -157,6 +214,11 @@ static int stm32h7_gpio_toggle(GPIO_Port_t *port, uint16_t pin)
   return DRV_OK;
 }
 
+/* ==================== 操作函数集与设备实例 ==================== */
+
+/**
+ * @brief STM32H7 GPIO操作函数集
+ */
 static GPIO_Ops_t stm32h7_gpio_ops =
 {
   .init = stm32h7_gpio_init,
@@ -166,14 +228,16 @@ static GPIO_Ops_t stm32h7_gpio_ops =
   .toggle = stm32h7_gpio_toggle
 };
 
+/* GPIO端口设备实例 */
 static GPIO_Port_t gpioa_device = {"GPIOA", GPIOA, &stm32h7_gpio_ops};
 static GPIO_Port_t gpiob_device = {"GPIOB", GPIOB, &stm32h7_gpio_ops};
 static GPIO_Port_t gpioc_device = {"GPIOC", GPIOC, &stm32h7_gpio_ops};
 static GPIO_Port_t gpiod_device = {"GPIOD", GPIOD, &stm32h7_gpio_ops};
 static GPIO_Port_t gpioe_device = {"GPIOE", GPIOE, &stm32h7_gpio_ops};
 
-GPIO_Port_t *drv_gpioa = &gpioa_device;
-GPIO_Port_t *drv_gpiob = &gpiob_device;
-GPIO_Port_t *drv_gpioc = &gpioc_device;
-GPIO_Port_t *drv_gpiod = &gpiod_device;
-GPIO_Port_t *drv_gpioe = &gpioe_device;
+/* 全局端口指针 */
+GPIO_Port_t *drv_gpioa = &gpioa_device;  /**< GPIOA全局指针 */
+GPIO_Port_t *drv_gpiob = &gpiob_device;  /**< GPIOB全局指针 */
+GPIO_Port_t *drv_gpioc = &gpioc_device;  /**< GPIOC全局指针 */
+GPIO_Port_t *drv_gpiod = &gpiod_device;  /**< GPIOD全局指针 */
+GPIO_Port_t *drv_gpioe = &gpioe_device;  /**< GPIOE全局指针 */
