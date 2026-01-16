@@ -22,7 +22,8 @@
 #include "stm32h7xx_it.h"
 #include "FreeRTOS.h"
 #include "stm32h7xx_hal.h"
-#include "drv_uart.h"
+#include "drv_uart_desc.h"
+#include "board.h"
 #include "stm32h7xx_hal_tim.h"
 #include "task.h"
 
@@ -63,6 +64,8 @@
 
 /* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim4;
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -227,7 +230,7 @@ void USART1_IRQHandler(void)
   /* USER CODE BEGIN USART1_IRQn 0 */
 
   /* USER CODE END USART1_IRQn 0 */
-  drv_uart_irq_handler(drv_uart1);
+  HAL_UART_IRQHandler(&comm_uart->hal_handle);
   /* USER CODE BEGIN USART1_IRQn 1 */
 
   /* USER CODE END USART1_IRQn 1 */
@@ -243,7 +246,7 @@ void USART2_IRQHandler(void)
   /* USER CODE BEGIN USART2_IRQn 0 */
 
   /* USER CODE END USART2_IRQn 0 */
-  drv_uart_irq_handler(drv_uart2);
+  HAL_UART_IRQHandler(&debug_uart->hal_handle);
   /* USER CODE BEGIN USART2_IRQn 1 */
 
   /* USER CODE END USART2_IRQn 1 */
