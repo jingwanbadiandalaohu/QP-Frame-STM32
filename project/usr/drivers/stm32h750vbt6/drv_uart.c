@@ -222,8 +222,8 @@ int uart_receive_it(uart_desc_t uart, uint8_t *data, uint16_t len)
  */
 void _putchar(char character)
 {
-  if(debug_uart != NULL)
+  if(uart2_rs485 != NULL)
   {
-    HAL_UART_Transmit(&debug_uart->hal_handle, (uint8_t *)&character, 1, 0xFFFF);
+    HAL_UART_Transmit(&uart2_rs485->hal_handle, (uint8_t *)&character, 1, 0xFFFF);
   }
 }

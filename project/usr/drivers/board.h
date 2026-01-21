@@ -29,17 +29,19 @@ extern gpio_desc_t relay1;
 /**
  * @brief 调试串口描述符。
  */
-extern uart_desc_t debug_uart;
+extern uart_desc_t uart2_rs485;
 
 /**
  * @brief 通信串口描述符。
  */
-extern uart_desc_t comm_uart;
+extern uart_desc_t uart1_rs232;
 
 /**
- * @brief ADC1描述符。
+ * @brief ADC描述符。
  */
 extern adc_desc_t adc1;
+extern adc_desc_t adc2;
+
 
 #ifdef __cplusplus
 }

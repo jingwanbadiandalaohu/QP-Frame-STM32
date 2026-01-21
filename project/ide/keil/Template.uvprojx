@@ -54,7 +54,7 @@
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
           <DebugInformation>1</DebugInformation>
-          <BrowseInformation>0</BrowseInformation>
+          <BrowseInformation>1</BrowseInformation>
           <ListingPath>.\Listings\</ListingPath>
           <HexFormatSelection>1</HexFormatSelection>
           <Merge32K>0</Merge32K>
@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32H750xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Inc;..\..\..\mcu\stm32h750vbt6\CMSIS\Include;..\..\..\mcu\stm32h750vbt6\CMSIS\Device\ST\STM32H7xx\Include;..\..\usr\app;..\..\usr\bsp;..\..\usr\drivers;..\..\usr\drivers\stm32h7;..\..\usr\core;..\..\usr\inc;..\..\usr\common\filter;..\..\Middlewares\Third_Party\FreeRTOS\include;..\..\Middlewares\Third_Party\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\..\Middlewares\Third_Party\CMSIS-FreeRTOS\CMSIS\RTOS2\FreeRTOS\Include;..\..\Middlewares\Third_Party\CMSIS_5\CMSIS\RTOS2\Include;..\..\Middlewares\Third_Party\Printf</IncludePath>
+              <IncludePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Inc;..\..\..\mcu\stm32h750vbt6\CMSIS\Include;..\..\..\mcu\stm32h750vbt6\CMSIS\Device\ST\STM32H7xx\Include;..\..\Middlewares\Third_Party\FreeRTOS\include;..\..\Middlewares\Third_Party\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\..\Middlewares\Third_Party\CMSIS-FreeRTOS\CMSIS\RTOS2\FreeRTOS\Include;..\..\Middlewares\Third_Party\CMSIS_5\CMSIS\RTOS2\Include;..\..\Middlewares\Third_Party\Printf;..\..\usr\app;..\..\usr\common\filter;..\..\usr\core\stm32h750vbt6;..\..\usr\device;..\..\usr\drivers\stm32h750vbt6;..\..\usr\drivers;..\..\usr\inc\stm32h750vbt6</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -381,7 +381,7 @@
       </TargetOption>
       <Groups>
         <Group>
-          <GroupName>app</GroupName>
+          <GroupName>App</GroupName>
           <Files>
             <File>
               <FileName>main.c</FileName>
@@ -391,58 +391,28 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>bsp</GroupName>
+          <GroupName>Device</GroupName>
           <Files>
             <File>
-              <FileName>bsp.c</FileName>
+              <FileName>led.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\usr\bsp\bsp.c</FilePath>
+              <FilePath>..\..\usr\device\led.c</FilePath>
             </File>
             <File>
-              <FileName>bsp_gpio.c</FileName>
+              <FileName>relay.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\usr\bsp\bsp_gpio.c</FilePath>
-            </File>
-            <File>
-              <FileName>bsp_uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\usr\bsp\bsp_uart.c</FilePath>
-            </File>
-            <File>
-              <FileName>bsp_adc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\usr\bsp\bsp_adc.c</FilePath>
+              <FilePath>..\..\usr\device\relay.c</FilePath>
             </File>
           </Files>
         </Group>
         <Group>
-          <GroupName>drivers\h750vbt6</GroupName>
+          <GroupName>Drivers\public</GroupName>
           <Files>
             <File>
-              <FileName>drv_adc_impl.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\usr\drivers\stm32h7\drv_adc_impl.c</FilePath>
+              <FileName>board.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\usr\drivers\board.h</FilePath>
             </File>
-            <File>
-              <FileName>drv_gpio_impl.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\usr\drivers\stm32h7\drv_gpio_impl.c</FilePath>
-            </File>
-            <File>
-              <FileName>drv_system_impl.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\usr\drivers\stm32h7\drv_system_impl.c</FilePath>
-            </File>
-            <File>
-              <FileName>drv_uart_impl.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\usr\drivers\stm32h7\drv_uart_impl.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>drivers</GroupName>
-          <Files>
             <File>
               <FileName>drv_adc.h</FileName>
               <FileType>5</FileType>
@@ -466,22 +436,77 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>core</GroupName>
+          <GroupName>Drivers\stm32h750vbt6</GroupName>
+          <Files>
+            <File>
+              <FileName>board.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\drivers\stm32h750vbt6\board.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_system.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\drivers\stm32h750vbt6\drv_system.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\drivers\stm32h750vbt6\drv_adc.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_adc_desc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\usr\drivers\stm32h750vbt6\drv_adc_desc.h</FilePath>
+            </File>
+            <File>
+              <FileName>drv_gpio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\drivers\stm32h750vbt6\drv_gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_gpio_desc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\usr\drivers\stm32h750vbt6\drv_gpio_desc.h</FilePath>
+            </File>
+            <File>
+              <FileName>drv_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\drivers\stm32h750vbt6\drv_uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_uart_desc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\usr\drivers\stm32h750vbt6\drv_uart_desc.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Common</GroupName>
+          <Files>
+            <File>
+              <FileName>filter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\common\filter\filter.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Core\stm32h750vbt6</GroupName>
           <Files>
             <File>
               <FileName>stm32h7xx_hal_msp.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\usr\core\stm32h7xx_hal_msp.c</FilePath>
+              <FilePath>..\..\usr\core\stm32h750vbt6\stm32h7xx_hal_msp.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_it.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\usr\core\stm32h7xx_it.c</FilePath>
+              <FilePath>..\..\usr\core\stm32h750vbt6\stm32h7xx_it.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_hal_timebase_tim.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\usr\core\stm32h7xx_hal_timebase_tim.c</FilePath>
+              <FilePath>..\..\usr\core\stm32h750vbt6\stm32h7xx_hal_timebase_tim.c</FilePath>
             </File>
             <File>
               <FileName>system_stm32h7xx.c</FileName>
@@ -566,7 +591,7 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>stm32f1_hal</GroupName>
+          <GroupName>Mcu\stm32h750vbt6</GroupName>
           <Files>
             <File>
               <FileName>stm32h7xx_hal.c</FileName>
@@ -584,6 +609,11 @@
               <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_adc_ex.c</FilePath>
             </File>
             <File>
+              <FileName>stm32h7xx_hal_cortex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_cortex.c</FilePath>
+            </File>
+            <File>
               <FileName>stm32h7xx_hal_dma.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_dma.c</FilePath>
@@ -592,11 +622,6 @@
               <FileName>stm32h7xx_hal_dma_ex.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_dma_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_dma2d.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_dma2d.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_hal_flash.c</FileName>
@@ -612,6 +637,16 @@
               <FileName>stm32h7xx_hal_gpio.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32h7xx_hal_pwr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_pwr.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32h7xx_hal_pwr_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_pwr_ex.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_hal_rcc.c</FileName>
@@ -642,21 +677,6 @@
               <FileName>stm32h7xx_hal_uart_ex.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_uart_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_cortex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_cortex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_pwr.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_pwr.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_pwr_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_pwr_ex.c</FilePath>
             </File>
           </Files>
         </Group>

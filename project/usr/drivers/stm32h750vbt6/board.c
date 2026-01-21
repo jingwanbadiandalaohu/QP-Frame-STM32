@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file    board.c
  * @author  Dylan
  * @date    2026-01-15
@@ -11,6 +11,7 @@
 #include "drv_gpio_desc.h"
 #include "drv_uart_desc.h"
 #include "drv_adc_desc.h"
+#include "stm32h7xx_hal_adc.h"
 
 /**
  * @brief LED1 GPIO描述符。
@@ -43,17 +44,17 @@ static struct gpio_desc s_relay1 = {
 gpio_desc_t relay1 = &s_relay1;
 
 /**
- * @brief 调试串口描述符。
+ * @brief 调试串口描述符。串口2-RS485
  */
-static struct uart_desc s_debug_uart = {
+static struct uart_desc s_uart2_rs485 = {
   .instance = USART2,
   .baudrate = 115200
 };
 
 /**
- * @brief 通信串口描述符。
+ * @brief 通信串口描述符。串口1-RS232
  */
-static struct uart_desc s_comm_uart = {
+static struct uart_desc s_uart1_rs232 = {
   .instance = USART1,
   .baudrate = 115200
 };
@@ -61,12 +62,12 @@ static struct uart_desc s_comm_uart = {
 /**
  * @brief 调试串口句柄。
  */
-uart_desc_t debug_uart = &s_debug_uart;
+uart_desc_t uart2_rs485 = &s_uart2_rs485;
 
 /**
  * @brief 通信串口句柄。
  */
-uart_desc_t comm_uart = &s_comm_uart;
+uart_desc_t uart1_rs232 = &s_uart1_rs232;
 
 /**
  * @brief ADC1 DMA缓冲区（放置在AXI SRAM）。
@@ -74,18 +75,35 @@ uart_desc_t comm_uart = &s_comm_uart;
  * @note 通过链接脚本的 .ram_axi 段放到AXI SRAM。
  */
 __attribute__((section(".ram_axi"))) static uint16_t s_adc1_buffer[64];
+__attribute__((section(".ram_axi"))) static uint16_t s_adc2_buffer[64];
+
 
 /**
- * @brief ADC1描述符。
+ * @brief ADC1描述符,ADC1 - PB1 ADC_CHANNEL_5 - DMA1_Stream0 - 采集下板数据
  */
 static struct adc_desc s_adc1 = {
   .instance = ADC1,
   .channel = ADC_CHANNEL_5,
   .dma_buffer = s_adc1_buffer,
   .buffer_len = 64
+  // hal_handle 和 dma_handle 没写 → 自动初始化为0
 };
 
 /**
- * @brief ADC1描述符句柄。
+ * @brief ADC2描述符。ADC2 - PA6 ADC_CHANNEL_3 - DMA1_Stream1 - 采集星电电压
+ */
+ static struct adc_desc s_adc2 = {
+  .instance = ADC2,
+  .channel = ADC_CHANNEL_3,
+  .dma_buffer = s_adc2_buffer,
+  .buffer_len = 64
+  // hal_handle 和 dma_handle 没写 → 自动初始化为0
+};
+
+
+/**
+ * @brief ADC描述符句柄。
  */
 adc_desc_t adc1 = &s_adc1;
+adc_desc_t adc2 = &s_adc2;
+
