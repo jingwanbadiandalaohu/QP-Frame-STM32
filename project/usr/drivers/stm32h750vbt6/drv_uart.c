@@ -26,6 +26,31 @@
 #define UART2_GPIO_AF GPIO_AF7_USART2
 
 /**
+ * @brief   初始化UART。
+ *
+ * @param[in]   uart  UART描述符。
+ * @return  无
+ */
+void uart_init(uart_desc_t uart)
+{
+  if(uart == NULL)
+  {
+    return;
+  }
+
+  uart->hal_handle.Instance = uart->instance;
+  uart->hal_handle.Init.BaudRate = uart->baudrate;
+  uart->hal_handle.Init.WordLength = UART_WORDLENGTH_8B;
+  uart->hal_handle.Init.StopBits = UART_STOPBITS_1;
+  uart->hal_handle.Init.Parity = UART_PARITY_NONE;
+  uart->hal_handle.Init.Mode = UART_MODE_TX_RX;
+  uart->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  uart->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
+
+  HAL_UART_Init(&uart->hal_handle);
+}
+
+/**
  * @brief   UART底层初始化。
  *
  * @param[in]   huart  UART句柄。
@@ -72,73 +97,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
   }
 }
 
-/**
- * @brief   UART底层反初始化。
- *
- * @param[in]   huart  UART句柄。
- * @return  无
- */
-void HAL_UART_MspDeInit(UART_HandleTypeDef *huart)
-{
-  if(huart == NULL)
-  {
-    return;
-  }
 
-  if(huart->Instance == UART1_INSTANCE)
-  {
-    __HAL_RCC_USART1_CLK_DISABLE();
-    HAL_GPIO_DeInit(UART1_GPIO_PORT, UART1_GPIO_TX_PIN | UART1_GPIO_RX_PIN);
-    HAL_NVIC_DisableIRQ(USART1_IRQn);
-  }
-  else if(huart->Instance == UART2_INSTANCE)
-  {
-    __HAL_RCC_USART2_CLK_DISABLE();
-    HAL_GPIO_DeInit(UART2_GPIO_PORT, UART2_GPIO_TX_PIN | UART2_GPIO_RX_PIN);
-    HAL_NVIC_DisableIRQ(USART2_IRQn);
-  }
-}
-
-/**
- * @brief   初始化UART。
- *
- * @param[in]   uart  UART描述符。
- * @return  无
- */
-void uart_init(uart_desc_t uart)
-{
-  if(uart == NULL)
-  {
-    return;
-  }
-
-  uart->hal_handle.Instance = uart->instance;
-  uart->hal_handle.Init.BaudRate = uart->baudrate;
-  uart->hal_handle.Init.WordLength = UART_WORDLENGTH_8B;
-  uart->hal_handle.Init.StopBits = UART_STOPBITS_1;
-  uart->hal_handle.Init.Parity = UART_PARITY_NONE;
-  uart->hal_handle.Init.Mode = UART_MODE_TX_RX;
-  uart->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  uart->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
-
-  HAL_UART_Init(&uart->hal_handle);
-}
-
-/**
- * @brief   反初始化UART。
- *
- * @param[in]   uart  UART描述符。
- * @return  无
- */
-void uart_deinit(uart_desc_t uart)
-{
-  if(uart == NULL)
-  {
-    return;
-  }
-
-  HAL_UART_DeInit(&uart->hal_handle);
-}
 
 /**
  * @brief   阻塞方式发送数据。

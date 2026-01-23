@@ -38,6 +38,74 @@
 #define ADC2_DMA_INSTANCE DMA1_Stream1
 #define ADC2_DMA_REQUEST DMA_REQUEST_ADC2
 
+
+/**
+ * @brief   初始化ADC
+ *
+ * @details 配置ADC工作参数并启动校准。
+ *          
+ *          ADC配置：
+ *          - 时钟：50 MHz (无预分频)
+ *          - 分辨率：16位
+ *          - 转换模式：连续转换
+ *          - 数据管理：DMA循环模式
+ *          - 采样时间：387.5个时钟周期
+ *          - 采样率：约126 kSPS
+ *          
+ *          初始化流程：
+ *          1. 配置ADC基本参数
+ *          2. 执行偏移校准
+ *          3. 配置ADC通道参数
+ *
+ * @param[in]   adc  ADC描述符指针
+ * 
+ * @return  None
+ * 
+ * @note    调用前需确保adc描述符已正确初始化
+ * @note    校准过程会自动执行，无需手动干预
+ * @warning adc参数为NULL时函数直接返回
+ */
+void adc_init(adc_desc_t adc)
+{
+  ADC_ChannelConfTypeDef ch_config = {0};
+
+  if(adc == NULL)
+  {
+    return;
+  }
+
+  // 配置ADC基本参数
+  adc->hal_handle.Instance = adc->instance;
+  adc->hal_handle.DMA_Handle = &adc->dma_handle;
+  adc->hal_handle.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;        // 时钟不分频，50 MHz
+  adc->hal_handle.Init.Resolution = ADC_RESOLUTION_16B;              // 16位分辨率
+  adc->hal_handle.Init.ScanConvMode = ADC_SCAN_DISABLE;              // 禁用扫描模式
+  adc->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;           // 单次转换结束标志
+  adc->hal_handle.Init.LowPowerAutoWait = DISABLE;                   // 禁用低功耗自动等待
+  adc->hal_handle.Init.ContinuousConvMode = ENABLE;                  // 使能连续转换模式
+  adc->hal_handle.Init.NbrOfConversion = 1;                          // 转换通道数量为1
+  adc->hal_handle.Init.DiscontinuousConvMode = DISABLE;              // 禁用间断转换模式
+  adc->hal_handle.Init.ExternalTrigConv = ADC_SOFTWARE_START;        // 软件触发转换
+  adc->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;  // 无外部触发边沿
+  adc->hal_handle.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;  // DMA循环模式
+  adc->hal_handle.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;           // 数据溢出时覆盖旧数据
+  adc->hal_handle.Init.OversamplingMode = DISABLE;                   // 禁用过采样
+
+  HAL_ADC_Init(&adc->hal_handle);
+  
+  // 执行ADC偏移校准
+  HAL_ADCEx_Calibration_Start(&adc->hal_handle, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+
+  // 配置ADC通道参数
+  ch_config.Channel = adc->channel;                                  // 设置通道号
+  ch_config.Rank = ADC_REGULAR_RANK_1;                               // 转换序列第1位
+  ch_config.SamplingTime = ADC_SAMPLETIME_387CYCLES_5;               // 采样时间387.5周期，采样率126 kSPS
+  ch_config.SingleDiff = ADC_SINGLE_ENDED;                           // 单端输入模式
+  ch_config.OffsetNumber = ADC_OFFSET_NONE;                          // 不使用偏移
+  ch_config.Offset = 0;                                              // 偏移值为0
+  HAL_ADC_ConfigChannel(&adc->hal_handle, &ch_config);
+}
+
 /**
  * @brief   ADC底层初始化
  *
@@ -128,124 +196,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
   }
 }
 
-/**
- * @brief   ADC底层反初始化
- *
- * @details 释放ADC的GPIO和DMA资源。此函数由HAL库自动调用。
- *
- * @param[in]   hadc  ADC句柄指针
- * 
- * @return  None
- * 
- * @note    此函数在HAL_ADC_DeInit()中被自动调用
- */
-void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc)
-{
-  if(hadc == NULL)
-  {
-    return;
-  }
 
-  if(hadc->Instance == ADC1_INSTANCE)
-  {
-    HAL_GPIO_DeInit(ADC1_GPIO_PORT, ADC1_GPIO_PIN);
-    HAL_DMA_DeInit(hadc->DMA_Handle);
-  }
-  else if(hadc->Instance == ADC2_INSTANCE)
-  {
-    HAL_GPIO_DeInit(ADC2_GPIO_PORT, ADC2_GPIO_PIN);
-    HAL_DMA_DeInit(hadc->DMA_Handle);
-  }
-}
-
-/**
- * @brief   初始化ADC
- *
- * @details 配置ADC工作参数并启动校准。
- *          
- *          ADC配置：
- *          - 时钟：50 MHz (无预分频)
- *          - 分辨率：16位
- *          - 转换模式：连续转换
- *          - 数据管理：DMA循环模式
- *          - 采样时间：387.5个时钟周期
- *          - 采样率：约126 kSPS
- *          
- *          初始化流程：
- *          1. 配置ADC基本参数
- *          2. 执行偏移校准
- *          3. 配置ADC通道参数
- *
- * @param[in]   adc  ADC描述符指针
- * 
- * @return  None
- * 
- * @note    调用前需确保adc描述符已正确初始化
- * @note    校准过程会自动执行，无需手动干预
- * @warning adc参数为NULL时函数直接返回
- */
-void adc_init(adc_desc_t adc)
-{
-  ADC_ChannelConfTypeDef ch_config = {0};
-
-  if(adc == NULL)
-  {
-    return;
-  }
-
-  // 配置ADC基本参数
-  adc->hal_handle.Instance = adc->instance;
-  adc->hal_handle.DMA_Handle = &adc->dma_handle;
-  adc->hal_handle.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;        // 时钟不分频，50 MHz
-  adc->hal_handle.Init.Resolution = ADC_RESOLUTION_16B;              // 16位分辨率
-  adc->hal_handle.Init.ScanConvMode = ADC_SCAN_DISABLE;              // 禁用扫描模式
-  adc->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;           // 单次转换结束标志
-  adc->hal_handle.Init.LowPowerAutoWait = DISABLE;                   // 禁用低功耗自动等待
-  adc->hal_handle.Init.ContinuousConvMode = ENABLE;                  // 使能连续转换模式
-  adc->hal_handle.Init.NbrOfConversion = 1;                          // 转换通道数量为1
-  adc->hal_handle.Init.DiscontinuousConvMode = DISABLE;              // 禁用间断转换模式
-  adc->hal_handle.Init.ExternalTrigConv = ADC_SOFTWARE_START;        // 软件触发转换
-  adc->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;  // 无外部触发边沿
-  adc->hal_handle.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;  // DMA循环模式
-  adc->hal_handle.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;           // 数据溢出时覆盖旧数据
-  adc->hal_handle.Init.OversamplingMode = DISABLE;                   // 禁用过采样
-
-  HAL_ADC_Init(&adc->hal_handle);
-  
-  // 执行ADC偏移校准
-  HAL_ADCEx_Calibration_Start(&adc->hal_handle, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
-
-  // 配置ADC通道参数
-  ch_config.Channel = adc->channel;                                  // 设置通道号
-  ch_config.Rank = ADC_REGULAR_RANK_1;                               // 转换序列第1位
-  ch_config.SamplingTime = ADC_SAMPLETIME_387CYCLES_5;               // 采样时间387.5周期，采样率126 kSPS
-  ch_config.SingleDiff = ADC_SINGLE_ENDED;                           // 单端输入模式
-  ch_config.OffsetNumber = ADC_OFFSET_NONE;                          // 不使用偏移
-  ch_config.Offset = 0;                                              // 偏移值为0
-  HAL_ADC_ConfigChannel(&adc->hal_handle, &ch_config);
-}
-
-/**
- * @brief   反初始化ADC
- *
- * @details 释放ADC资源，恢复到未初始化状态。
- *
- * @param[in]   adc  ADC描述符指针
- * 
- * @return  None
- * 
- * @note    此函数会调用HAL_ADC_DeInit()，进而触发HAL_ADC_MspDeInit()
- * @warning adc参数为NULL时函数直接返回
- */
-void adc_deinit(adc_desc_t adc)
-{
-  if(adc == NULL)
-  {
-    return;
-  }
-
-  HAL_ADC_DeInit(&adc->hal_handle);
-}
 
 /**
  * @brief   读取一次ADC值

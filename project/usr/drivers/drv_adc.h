@@ -19,7 +19,6 @@ struct adc_desc;
 typedef struct adc_desc *adc_desc_t;
 
 void adc_init(adc_desc_t adc);
-void adc_deinit(adc_desc_t adc);
 uint16_t adc_read(adc_desc_t adc);
 void adc_start_dma(adc_desc_t adc);
 void adc_stop_dma(adc_desc_t adc);
