@@ -8,8 +8,9 @@ struct uart_desc
 {
   USART_TypeDef *instance;
   uint32_t baudrate;
-  UART_HandleTypeDef hal_handle;
+  UART_HandleTypeDef hal_handle;      // 串口HAL句柄，替代UART_HandleTypeDef huart1;
 };
+
 
 typedef struct uart_desc *uart_desc_t;
 

@@ -23,10 +23,9 @@ static struct gpio_desc s_led1 = {
   .off_state = GPIO_PIN_SET
 };
 
-/**
- * @brief LED1描述符句柄。
- */
+// LED1描述符句柄。
 gpio_desc_t led1 = &s_led1;
+
 
 /**
  * @brief 继电器GPIO描述符。
@@ -38,10 +37,18 @@ static struct gpio_desc s_relay1 = {
   .off_state = GPIO_PIN_RESET
 };
 
-/**
- * @brief 继电器描述符句柄。
- */
+// 继电器描述符句柄。
 gpio_desc_t relay1 = &s_relay1;
+
+
+
+
+/**
+ * @brief Uart DMA缓冲区（放置在AXI SRAM）。
+ *
+ * @note 通过链接脚本的 .ram_axi 段放到AXI SRAM。
+ */
+__attribute__((section(".ram_axi"))) __attribute__((aligned(32))) volatile uint8_t Uart1_rx_buf[64] = {0};
 
 /**
  * @brief 调试串口描述符。串口2-RS485
@@ -51,6 +58,10 @@ static struct uart_desc s_uart2_rs485 = {
   .baudrate = 115200
 };
 
+// 调试串口句柄。
+uart_desc_t uart2_rs485 = &s_uart2_rs485;
+
+
 /**
  * @brief 通信串口描述符。串口1-RS232
  */
@@ -59,23 +70,22 @@ static struct uart_desc s_uart1_rs232 = {
   .baudrate = 115200
 };
 
-/**
- * @brief 调试串口句柄。
- */
-uart_desc_t uart2_rs485 = &s_uart2_rs485;
-
-/**
- * @brief 通信串口句柄。
- */
+// 调试串口句柄。
 uart_desc_t uart1_rs232 = &s_uart1_rs232;
 
+
+
+
+
+
 /**
- * @brief ADC1 DMA缓冲区（放置在AXI SRAM）。
+ * @brief ADC DMA缓冲区（放置在AXI SRAM）。
  *
  * @note 通过链接脚本的 .ram_axi 段放到AXI SRAM。
  */
 __attribute__((section(".ram_axi"))) static uint16_t s_adc1_buffer[64];
 __attribute__((section(".ram_axi"))) static uint16_t s_adc2_buffer[64];
+
 
 
 /**
@@ -88,6 +98,10 @@ static struct adc_desc s_adc1 = {
   .buffer_len = 64
   // hal_handle 和 dma_handle 没写 → 自动初始化为0
 };
+// ADC描述符句柄。
+adc_desc_t adc1 = &s_adc1;
+
+
 
 /**
  * @brief ADC2描述符。ADC2 - PA6 ADC_CHANNEL_3 - DMA1_Stream1 - 采集星电电压
@@ -99,11 +113,6 @@ static struct adc_desc s_adc1 = {
   .buffer_len = 64
   // hal_handle 和 dma_handle 没写 → 自动初始化为0
 };
-
-
-/**
- * @brief ADC描述符句柄。
- */
-adc_desc_t adc1 = &s_adc1;
+// ADC描述符句柄。
 adc_desc_t adc2 = &s_adc2;
 

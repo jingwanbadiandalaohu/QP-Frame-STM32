@@ -31,10 +31,6 @@
 
 // LED闪烁任务。
 static void BlinkTask(void *argument);
-
-// 串口打印任务，回显接收的字节。
-static void PrintTask(void *argument);
-
 // ADC采样打印任务，包含两级滤波。
 static void AdcPrintTask(void *argument);
 
@@ -74,14 +70,6 @@ int main(void)
   };
   osThreadNew(BlinkTask, NULL, &blinkTask_attributes);
 
-  // 创建串口打印任务。
-  const osThreadAttr_t printTask_attributes =
-  {
-    .name = "PrintTask",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
-  };
-  osThreadNew(PrintTask, NULL, &printTask_attributes);
 
   // 创建ADC打印任务（实时优先级）。
   const osThreadAttr_t adcPrintTask_attributes =
@@ -112,43 +100,16 @@ static void BlinkTask(void *argument)
   }
 }
 
-static void PrintTask(void *argument)
-{
-  char buffer[64] = {0};
-  uint8_t byte = 0;
-  int len = 0;
-
-  (void)argument;
-
-  while(1)
-  {
-    // 处理RS485调试串口数据。
-    if(uart_receive(uart2_rs485, &byte, 1, 0) == 0)
-    {
-      len = snprintf(buffer, sizeof(buffer), "RS485_Uart2 %x\r\n", byte);
-      uart_transmit(uart2_rs485, (uint8_t *)buffer, (uint16_t)len, 0xFFFF);
-    }
-
-    // 处理RS232通信串口数据。
-    if(uart_receive(uart1_rs232, &byte, 1, 0) == 0)
-    {
-      len = snprintf(buffer, sizeof(buffer), "RS232_Uart1 %x\r\n", byte);
-      uart_transmit(uart1_rs232, (uint8_t *)buffer, (uint16_t)len, 0xFFFF);
-    }
-
-    osDelay(1);
-  }
-}
 
 // 定义ADC滤波器。
-// static MAF_Handle_t s_adc_filter_1;
-// static WMAF_Handle_t s_adc_filter_2;
+static MAF_Handle_t s_adc_filter_1;
+static WMAF_Handle_t s_adc_filter_2;
 
 static void AdcPrintTask(void *argument)
 {
-  // uint16_t adcx = 0;          /**< 一级滤波后的ADC值。 */
-  // uint16_t adcx2 = 0;         /**< 二级滤波后的ADC值。 */
-  // uint16_t *adc_buffer = NULL;
+  uint16_t adcx = 0;          /**< 一级滤波后的ADC值。 */
+  uint16_t adcx2 = 0;         /**< 二级滤波后的ADC值。 */
+  uint16_t *adc_buffer = NULL;
 
   // uint16_t *adc2_buffer = NULL;
 
@@ -164,16 +125,16 @@ static void AdcPrintTask(void *argument)
 
 
     // 获取DMA缓冲区数据。
-    // adc_buffer = adc_get_dma_buffer(adc1);
-    // if(adc_buffer == NULL || adc_get_dma_length(adc1) == 0)
-    // {
-    //   continue;
-    // }
+    adc_buffer = adc_get_dma_buffer(adc1);
+    if(adc_buffer == NULL || adc_get_dma_length(adc1) == 0)
+    {
+      continue;
+    }
 
-    // // 两级滤波处理：MAF -> WMAF。
-    // adcx = MAF_Update(&s_adc_filter_1, adc_buffer[0]);
-    // adcx2 = WMAF_Update(&s_adc_filter_2, adcx);
+    // 两级滤波处理：MAF -> WMAF。
+    adcx = MAF_Update(&s_adc_filter_1, adc_buffer[0]);
+    adcx2 = WMAF_Update(&s_adc_filter_2, adcx);
 
-    // printf("%d, %d, %d\n", adc_buffer[0], adcx, adcx2);
+    printf("%d, %d, %d\n", adc_buffer[0], adcx, adcx2);
   }
 }

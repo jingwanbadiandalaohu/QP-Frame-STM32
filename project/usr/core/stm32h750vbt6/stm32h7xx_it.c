@@ -222,32 +222,32 @@ void TIM4_IRQHandler(void)
 }
 
 
-/**
-  * @brief This function handles USART1 global interrupt.
-  */
-void USART1_IRQHandler(void)
-{
-  /* USER CODE BEGIN USART1_IRQn 0 */
+// /**
+//   * @brief This function handles USART1 global interrupt.
+//   */
+// void USART1_IRQHandler(void)
+// {
+//   /* USER CODE BEGIN USART1_IRQn 0 */
 
-  /* USER CODE END USART1_IRQn 0 */
-  HAL_UART_IRQHandler(&uart1_rs232->hal_handle);
-  /* USER CODE BEGIN USART1_IRQn 1 */
+//   /* USER CODE END USART1_IRQn 0 */
+//   HAL_UART_IRQHandler(&uart1_rs232->hal_handle);
+//   /* USER CODE BEGIN USART1_IRQn 1 */
 
-  /* USER CODE END USART1_IRQn 1 */
-}
+//   /* USER CODE END USART1_IRQn 1 */
+// }
 
 
 
-/**
-  * @brief This function handles USART2 global interrupt.
-  */
-void USART2_IRQHandler(void)
-{
-  /* USER CODE BEGIN USART2_IRQn 0 */
+// /**
+//   * @brief This function handles USART2 global interrupt.
+//   */
+// void USART2_IRQHandler(void)
+// {
+//   /* USER CODE BEGIN USART2_IRQn 0 */
 
-  /* USER CODE END USART2_IRQn 0 */
-  HAL_UART_IRQHandler(&uart2_rs485->hal_handle);
-  /* USER CODE BEGIN USART2_IRQn 1 */
+//   /* USER CODE END USART2_IRQn 0 */
+//   HAL_UART_IRQHandler(&uart2_rs485->hal_handle);
+//   /* USER CODE BEGIN USART2_IRQn 1 */
 
-  /* USER CODE END USART2_IRQn 1 */
-}
+//   /* USER CODE END USART2_IRQn 1 */
+// }
