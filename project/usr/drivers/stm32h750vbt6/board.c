@@ -40,22 +40,36 @@ static struct gpio_desc s_relay1 = {
 // 继电器描述符句柄。
 gpio_desc_t relay1 = &s_relay1;
 
-
-
+/**
+ * @brief UART1 DMA接收缓冲区
+ * @note  32字节对齐确保cache一致性
+ */
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart1_rx_buf[1024] = {0};
 
 /**
- * @brief Uart DMA缓冲区（放置在AXI SRAM）。
- *
- * @note 通过链接脚本的 .ram_axi 段放到AXI SRAM。
+ * @brief UART2 DMA接收缓冲区
+ * @note  32字节对齐确保cache一致性
  */
-__attribute__((section(".ram_axi"))) __attribute__((aligned(32))) volatile uint8_t Uart1_rx_buf[64] = {0};
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart2_rx_buf[1024] = {0};
+
+/**
+ * @brief ADC1 DMA缓冲区
+ * @note  32字节对齐确保cache一致性
+ */
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint16_t s_adc1_buffer[64] = {0};
+
+/**
+ * @brief ADC2 DMA缓冲区
+ * @note  32字节对齐确保cache一致性
+ */
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint16_t s_adc2_buffer[64] = {0};
 
 /**
  * @brief 调试串口描述符。串口2-RS485
  */
 static struct uart_desc s_uart2_rs485 = {
   .instance = USART2,
-  .baudrate = 115200
+  .baudrate = 9600
 };
 
 // 调试串口句柄。
@@ -67,7 +81,7 @@ uart_desc_t uart2_rs485 = &s_uart2_rs485;
  */
 static struct uart_desc s_uart1_rs232 = {
   .instance = USART1,
-  .baudrate = 115200
+  .baudrate = 9600
 };
 
 // 调试串口句柄。
@@ -75,21 +89,8 @@ uart_desc_t uart1_rs232 = &s_uart1_rs232;
 
 
 
-
-
-
 /**
- * @brief ADC DMA缓冲区（放置在AXI SRAM）。
- *
- * @note 通过链接脚本的 .ram_axi 段放到AXI SRAM。
- */
-__attribute__((section(".ram_axi"))) static uint16_t s_adc1_buffer[64];
-__attribute__((section(".ram_axi"))) static uint16_t s_adc2_buffer[64];
-
-
-
-/**
- * @brief ADC1描述符,ADC1 - PB1 ADC_CHANNEL_5 - DMA1_Stream0 - 采集下板数据
+ * @brief ADC1描述符,ADC1 - PB1 ADC_CHANNEL_5 - DMA1_Stream2 - 采集下板数据
  */
 static struct adc_desc s_adc1 = {
   .instance = ADC1,

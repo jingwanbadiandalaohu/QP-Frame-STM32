@@ -2,17 +2,37 @@
  * @file    drv_uart.c
  * @author  Dylan
  * @date    2026-01-15
- * @brief   串口驱动实现。
+ * @brief   串口驱动实现
  *
- * @details 提供UART初始化、收发接口与底层初始化配置。
+ * @details 提供STM32H750VBT6的UART初始化、收发接口与底层初始化配置。
+ *          支持阻塞/中断/DMA三种传输模式，以及DMA+IDLE中断的不定长接收。
+ *          
+ *          UART配置参数：
+ *          - 波特率：9600 (可配置)
+ *          - 数据位：8位
+ *          - 停止位：1位
+ *          - 校验位：无
+ *          - 流控：无
+ *          - 过采样：16倍
+ *          
+ *          硬件配置：
+ *          - UART1 (RS232): PA9(TX), PA10(RX) → DMA1_Stream3 (接收)
+ *          - UART2 (RS485): PA2(TX), PA3(RX)  → DMA1_Stream4 (接收)
+ *          
+ *          DMA+IDLE接收机制：
+ *          - DMA工作在循环模式，持续接收数据到缓冲区
+ *          - IDLE中断触发时，停止DMA并计算接收长度
+ *          - 处理完数据后清空缓冲区，重新启动DMA
+ *          
+ * @note    UART DMA缓冲区需确保32字节对齐
+ * @note    printf输出通过UART2实现，需实现_putchar函数
+ * @warning 不同UART必须使用不同的DMA Stream，避免冲突
  */
 
 #include "drv_uart.h"
 #include "drv_uart_desc.h"
 #include "board.h"
-#include "stm32h7xx_hal_dma.h"
-#include "stm32h7xx_hal_uart.h"
-#include "stm32h7xx_hal_uart_ex.h"
+
 
 /**
  * @brief   初始化UART。
@@ -43,11 +63,19 @@ void uart_init(uart_desc_t uart)
 
   if(uart->instance == USART1)
   {
-    // 使能空闲中断。
+    // 使能空闲中断
     __HAL_UART_ENABLE_IT(&uart->hal_handle, UART_IT_IDLE);
 
     // 启动DMA接收
-    HAL_UART_Receive_DMA(&uart->hal_handle, (uint8_t *)Uart1_rx_buf, sizeof(Uart1_rx_buf));
+    HAL_UART_Receive_DMA(&uart->hal_handle, Uart1_rx_buf, sizeof(Uart1_rx_buf));
+  }
+  else if(uart->instance == USART2)
+  {
+    // 使能空闲中断
+    __HAL_UART_ENABLE_IT(&uart->hal_handle, UART_IT_IDLE);
+
+    // 启动DMA接收
+    HAL_UART_Receive_DMA(&uart->hal_handle, Uart2_rx_buf, sizeof(Uart2_rx_buf));
   }
 }
 
@@ -82,8 +110,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    // 配置DMA,Uart1 - DMA1 Stream0
-    hdma_usart1_rx.Instance = DMA1_Stream0;
+    // 配置DMA,Uart1 - DMA1 Stream3
+    hdma_usart1_rx.Instance = DMA1_Stream3;
     hdma_usart1_rx.Init.Request = DMA_REQUEST_USART1_RX;
     hdma_usart1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
     hdma_usart1_rx.Init.PeriphInc = DMA_PINC_DISABLE;               // 外设地址不递增
@@ -102,8 +130,11 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
   }
   else if(huart->Instance == USART2)
   {
+    static DMA_HandleTypeDef hdma_usart2_rx;
+
     __HAL_RCC_USART2_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_DMA1_CLK_ENABLE();
 
     GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_3;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -111,6 +142,21 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    // 配置DMA,Uart2 - DMA1 Stream4
+    hdma_usart2_rx.Instance = DMA1_Stream4;
+    hdma_usart2_rx.Init.Request = DMA_REQUEST_USART2_RX;
+    hdma_usart2_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_usart2_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_usart2_rx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_usart2_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_usart2_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_usart2_rx.Init.Mode = DMA_CIRCULAR;
+    hdma_usart2_rx.Init.Priority = DMA_PRIORITY_LOW;
+    hdma_usart2_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    HAL_DMA_Init(&hdma_usart2_rx);
+
+    __HAL_LINKDMA(huart, hdmarx, hdma_usart2_rx);
 
     HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
@@ -223,22 +269,74 @@ void USART1_IRQHandler(void)
   {
     __HAL_UART_CLEAR_IDLEFLAG(&uart1_rs232->hal_handle);
 
-    // H7 必须处理 Cache 一致性，否则 CPU 读不到物理内存里的新数据
-    SCB_InvalidateDCache_by_Addr((uint32_t *)Uart1_rx_buf, sizeof(Uart1_rx_buf));
+    // 停止DMA接收
+    HAL_UART_DMAStop(&uart1_rs232->hal_handle);
 
     // 计算接收到的字节数
-    volatile uint32_t recv_len = sizeof(Uart1_rx_buf) - __HAL_DMA_GET_COUNTER(uart1_rs232->hal_handle.hdmarx);
+    uint32_t recv_len = sizeof(Uart1_rx_buf) - __HAL_DMA_GET_COUNTER(uart1_rs232->hal_handle.hdmarx);
 
-    if(recv_len > 0)
+    if(recv_len > 0 && recv_len <= sizeof(Uart1_rx_buf))
     {
+      // 回显收到的数据
+      HAL_UART_Transmit(&uart1_rs232->hal_handle, Uart1_rx_buf, recv_len, 1000);
+      
+      uint8_t newline[] = "\r\n";
+      HAL_UART_Transmit(&uart1_rs232->hal_handle, newline, 2, 1000);
+    }
 
+    // 清空缓冲区
+    for(uint32_t i = 0; i < sizeof(Uart1_rx_buf); i++)
+    {
+      Uart1_rx_buf[i] = 0;
     }
 
     // 重新启动DMA接收
-    HAL_UART_Receive_DMA(&uart1_rs232->hal_handle, (uint8_t *)Uart1_rx_buf, sizeof(Uart1_rx_buf));
+    HAL_UART_Receive_DMA(&uart1_rs232->hal_handle, Uart1_rx_buf, sizeof(Uart1_rx_buf));
   }
 
   // 调用HAL库的中断处理函数
   HAL_UART_IRQHandler(&uart1_rs232->hal_handle);
+}
+
+/**
+ * @brief   USART2中断服务函数
+ *
+ * @param   None
+ * @return  None
+ */
+void USART2_IRQHandler(void)
+{
+  // 空闲中断处理（必须在HAL_UART_IRQHandler之前）
+  if(__HAL_UART_GET_FLAG(&uart2_rs485->hal_handle, UART_FLAG_IDLE) == SET)
+  {
+    __HAL_UART_CLEAR_IDLEFLAG(&uart2_rs485->hal_handle);
+
+    // 停止DMA接收
+    HAL_UART_DMAStop(&uart2_rs485->hal_handle);
+
+    // 计算接收到的字节数
+    uint32_t recv_len = sizeof(Uart2_rx_buf) - __HAL_DMA_GET_COUNTER(uart2_rs485->hal_handle.hdmarx);
+
+    if(recv_len > 0 && recv_len <= sizeof(Uart2_rx_buf))
+    {
+      // 回显收到的数据
+      HAL_UART_Transmit(&uart2_rs485->hal_handle, Uart2_rx_buf, recv_len, 1000);
+      
+      uint8_t newline[] = "\r\n";
+      HAL_UART_Transmit(&uart2_rs485->hal_handle, newline, 2, 1000);
+    }
+
+    // 清空缓冲区
+    for(uint32_t i = 0; i < sizeof(Uart2_rx_buf); i++)
+    {
+      Uart2_rx_buf[i] = 0;
+    }
+
+    // 重新启动DMA接收
+    HAL_UART_Receive_DMA(&uart2_rs485->hal_handle, Uart2_rx_buf, sizeof(Uart2_rx_buf));
+  }
+
+  // 调用HAL库的中断处理函数
+  HAL_UART_IRQHandler(&uart2_rs485->hal_handle);
 }
 

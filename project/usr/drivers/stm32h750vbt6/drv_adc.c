@@ -14,29 +14,16 @@
  *          - 采样率：约126 kSPS
  *          - DMA模式：循环模式
  *          
+ *          硬件配置：
+ *          - ADC1: PB1 → ADC_CHANNEL_5 → DMA1_Stream2
+ *          - ADC2: PA6 → ADC_CHANNEL_3 → DMA1_Stream1
+ *          
  * @note    DMA缓冲区必须位于AXI SRAM (0x2400_0000 - 0x24FF_FFFF)
  * @warning 修改采样时间会影响采样率和信号稳定性
  */
 
 #include "drv_adc.h"
 #include "drv_adc_desc.h"
-
-/**
- * @brief ADC1实例，ADC1: PB1 → ADC_CHANNEL_5 → DMA1_Stream0
- */
-#define ADC1_INSTANCE ADC1
-#define ADC1_GPIO_PORT GPIOB
-#define ADC1_GPIO_PIN GPIO_PIN_1
-#define ADC1_DMA_INSTANCE DMA1_Stream0
-#define ADC1_DMA_REQUEST DMA_REQUEST_ADC1
-/**
- * @brief ADC2实例，ADC2: PA6 → ADC_CHANNEL_3 → DMA1_Stream1
- */
-#define ADC2_INSTANCE ADC2
-#define ADC2_GPIO_PORT GPIOA
-#define ADC2_GPIO_PIN GPIO_PIN_6
-#define ADC2_DMA_INSTANCE DMA1_Stream1
-#define ADC2_DMA_REQUEST DMA_REQUEST_ADC2
 
 
 /**
@@ -138,20 +125,20 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   // 根据ADC实例配置对应的GPIO和DMA
-  if(hadc->Instance == ADC1_INSTANCE)
+  if(hadc->Instance == ADC1)
   {
     // 使能GPIOB时钟
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
-    // 配置ADC1输入引脚为模拟模式
-    GPIO_InitStruct.Pin = ADC1_GPIO_PIN;
+    // 配置ADC1输入引脚为模拟模式 (PB1)
+    GPIO_InitStruct.Pin = GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(ADC1_GPIO_PORT, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    // 配置ADC1 DMA参数
-    hadc->DMA_Handle->Instance = ADC1_DMA_INSTANCE;
-    hadc->DMA_Handle->Init.Request = ADC1_DMA_REQUEST;
+    // 配置ADC1 DMA参数 (DMA1_Stream2)
+    hadc->DMA_Handle->Instance = DMA1_Stream2;
+    hadc->DMA_Handle->Init.Request = DMA_REQUEST_ADC1;
     hadc->DMA_Handle->Init.Direction = DMA_PERIPH_TO_MEMORY;
     hadc->DMA_Handle->Init.PeriphInc = DMA_PINC_DISABLE;
     hadc->DMA_Handle->Init.MemInc = DMA_MINC_ENABLE;
@@ -166,20 +153,20 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
       __HAL_LINKDMA(hadc, DMA_Handle, *hadc->DMA_Handle);
     }
   }
-  else if(hadc->Instance == ADC2_INSTANCE)
+  else if(hadc->Instance == ADC2)
   {
     // 使能GPIOA时钟
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
-    // 配置ADC2输入引脚为模拟模式
-    GPIO_InitStruct.Pin = ADC2_GPIO_PIN;
+    // 配置ADC2输入引脚为模拟模式 (PA6)
+    GPIO_InitStruct.Pin = GPIO_PIN_6;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(ADC2_GPIO_PORT, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    // 配置ADC2 DMA参数
-    hadc->DMA_Handle->Instance = ADC2_DMA_INSTANCE;
-    hadc->DMA_Handle->Init.Request = ADC2_DMA_REQUEST;
+    // 配置ADC2 DMA参数 (DMA1_Stream1)
+    hadc->DMA_Handle->Instance = DMA1_Stream1;
+    hadc->DMA_Handle->Init.Request = DMA_REQUEST_ADC2;
     hadc->DMA_Handle->Init.Direction = DMA_PERIPH_TO_MEMORY;
     hadc->DMA_Handle->Init.PeriphInc = DMA_PINC_DISABLE;
     hadc->DMA_Handle->Init.MemInc = DMA_MINC_ENABLE;

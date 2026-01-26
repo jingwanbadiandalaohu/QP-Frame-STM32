@@ -166,13 +166,29 @@ SECTIONS
     __bss_end__ = _ebss;
   } >DTCMRAM
 
-  .ram_axi (NOLOAD) :
+  .ram_d1 (NOLOAD) :
   {
     . = ALIGN(4);
-    *(.ram_axi)
-    *(.ram_axi*)
+    *(.ram_d1)
+    *(.ram_d1*)
     . = ALIGN(4);
   } >RAM
+
+  .ram_d2 (NOLOAD) :
+  {
+    . = ALIGN(4);
+    *(.ram_d2)
+    *(.ram_d2*)
+    . = ALIGN(4);
+  } >RAM_D2
+
+  .ram_d3 (NOLOAD) :
+  {
+    . = ALIGN(4);
+    *(.ram_d3)
+    *(.ram_d3*)
+    . = ALIGN(4);
+  } >RAM_D3
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :

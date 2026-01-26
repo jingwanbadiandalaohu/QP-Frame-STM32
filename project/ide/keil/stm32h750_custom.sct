@@ -1,0 +1,34 @@
+; *************************************************************
+; *** Custom Scatter-Loading Description File for STM32H750 ***
+; *************************************************************
+
+LR_IROM1 0x08000000 0x00020000  {    ; Flash (128KB)
+  
+  ; Code and constants in Flash
+  ER_IROM1 0x08000000 0x00020000  {
+   *.o (RESET, +First)
+   *(InRoot$$Sections)
+   .ANY (+RO)
+   .ANY (+XO)
+  }
+  
+  ; DTCM RAM (128KB) - Default RW/ZI data, stack
+  RW_IRAM1 0x20000000 0x00020000  {
+   .ANY (+RW +ZI)
+  }
+  
+  ; D2 SRAM (288KB) - DMA buffers (UNINIT to avoid initialization)
+  RW_RAM_D2 0x30000000 UNINIT 0x00048000  {
+   *.o (RAM_D2)
+  }
+  
+  ; AXI SRAM (512KB) - High performance data
+  RW_IRAM2 0x24000000 UNINIT 0x00080000  {
+   *.o (RAM_AXI)
+  }
+  
+  ; D3 SRAM (64KB) - Low power domain
+  RW_RAM_D3 0x38000000 UNINIT 0x00010000  {
+   *.o (RAM_D3)
+  }
+}

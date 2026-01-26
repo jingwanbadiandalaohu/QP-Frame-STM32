@@ -39,7 +39,12 @@ extern uart_desc_t uart1_rs232;
 /**
  * @brief UART1 DMA接收缓冲区。
  */
-extern volatile uint8_t Uart1_rx_buf[64];
+extern uint8_t Uart1_rx_buf[1024];
+
+/**
+ * @brief UART2 DMA接收缓冲区。
+ */
+extern uint8_t Uart2_rx_buf[1024];
 
 /**
  * @brief ADC描述符。
