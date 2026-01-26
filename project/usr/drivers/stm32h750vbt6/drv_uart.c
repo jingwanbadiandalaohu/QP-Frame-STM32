@@ -19,10 +19,11 @@
  *          - UART1 (RS232): PA9(TX), PA10(RX) → DMA1_Stream3 (接收)
  *          - UART2 (RS485): PA2(TX), PA3(RX)  → DMA1_Stream4 (接收)
  *          
- *          DMA+IDLE接收机制：
- *          - DMA工作在循环模式，持续接收数据到缓冲区
- *          - IDLE中断触发时，停止DMA并计算接收长度
- *          - 处理完数据后清空缓冲区，重新启动DMA
+ *          DMA+IDLE+环形缓冲区接收机制：
+ *          - DMA工作在循环模式，持续接收数据到临时缓冲区
+ *          - IDLE中断触发时，将DMA缓冲区数据写入环形缓冲区
+ *          - 应用层通过uart_read从环形缓冲区读取数据
+ *          - 环形缓冲区避免数据丢失，支持连续高速接收
  *          
  * @note    UART DMA缓冲区需确保32字节对齐
  * @note    printf输出通过UART2实现，需实现_putchar函数
@@ -32,20 +33,27 @@
 #include "drv_uart.h"
 #include "drv_uart_desc.h"
 #include "board.h"
+#include "ringbuffer.h"
 
 
 /**
- * @brief   初始化UART。
+ * @brief   初始化UART
  *
- * @param[in]   uart  UART描述符。
+ * @param[in]   uart            UART描述符
+ * @param[in]   ringbuf_storage 环形缓冲区存储空间指针
+ * @param[in]   ringbuf_size    环形缓冲区大小
+ *
  * @return  None
  */
-void uart_init(uart_desc_t uart)
+void uart_init(uart_desc_t uart, uint8_t *ringbuf_storage, uint32_t ringbuf_size)
 {
-  if(uart == NULL)
+  if(uart == NULL || ringbuf_storage == NULL || ringbuf_size == 0)
   {
     return;
   }
+
+  // 初始化环形缓冲区
+  RingBuffer_Init(&uart->rx_ringbuf, ringbuf_storage, ringbuf_size);
 
   uart->hal_handle.Instance = uart->instance;
   uart->hal_handle.Init.BaudRate = uart->baudrate;
@@ -80,10 +88,11 @@ void uart_init(uart_desc_t uart)
 }
 
 /**
- * @brief   UART底层初始化。
+ * @brief   UART底层初始化
  *
- * @param[in]   huart  UART句柄。
- * @return  无
+ * @param[in]   huart  UART句柄
+ *
+ * @return  None
  */
 void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 {
@@ -114,8 +123,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     hdma_usart1_rx.Instance = DMA1_Stream3;
     hdma_usart1_rx.Init.Request = DMA_REQUEST_USART1_RX;
     hdma_usart1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    hdma_usart1_rx.Init.PeriphInc = DMA_PINC_DISABLE;               // 外设地址不递增
-    hdma_usart1_rx.Init.MemInc = DMA_MINC_ENABLE;                   // 内存地址递增
+    hdma_usart1_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_usart1_rx.Init.MemInc = DMA_MINC_ENABLE;
     hdma_usart1_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
     hdma_usart1_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
     hdma_usart1_rx.Init.Mode = DMA_CIRCULAR;
@@ -166,13 +175,15 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 
 
 /**
- * @brief   阻塞方式发送数据。
+ * @brief   阻塞方式发送数据
  *
- * @param[in]   uart     UART描述符。
- * @param[in]   data     发送数据指针。
- * @param[in]   len      发送长度。
- * @param[in]   timeout  超时计数。
- * @return  int 发送结果，0表示成功，-1表示失败。
+ * @param[in]   uart     UART描述符
+ * @param[in]   data     发送数据指针
+ * @param[in]   len      发送长度
+ * @param[in]   timeout  超时计数
+ *
+ * @retval  0   成功
+ * @retval  -1  失败
  */
 int uart_transmit(uart_desc_t uart, uint8_t *data, uint16_t len, uint32_t timeout)
 {
@@ -185,13 +196,15 @@ int uart_transmit(uart_desc_t uart, uint8_t *data, uint16_t len, uint32_t timeou
 }
 
 /**
- * @brief   阻塞方式接收数据。
+ * @brief   阻塞方式接收数据
  *
- * @param[in]   uart     UART描述符。
- * @param[out]  data     接收数据指针。
- * @param[in]   len      接收长度。
- * @param[in]   timeout  超时计数。
- * @return  int 接收结果，0表示成功，-1表示失败。
+ * @param[in]   uart     UART描述符
+ * @param[out]  data     接收数据指针
+ * @param[in]   len      接收长度
+ * @param[in]   timeout  超时计数
+ *
+ * @retval  0   成功
+ * @retval  -1  失败
  */
 int uart_receive(uart_desc_t uart, uint8_t *data, uint16_t len, uint32_t timeout)
 {
@@ -204,12 +217,14 @@ int uart_receive(uart_desc_t uart, uint8_t *data, uint16_t len, uint32_t timeout
 }
 
 /**
- * @brief   中断方式发送数据。
+ * @brief   中断方式发送数据
  *
- * @param[in]   uart  UART描述符。
- * @param[in]   data  发送数据指针。
- * @param[in]   len   发送长度。
- * @return  int 发送结果，0表示成功，-1表示失败。
+ * @param[in]   uart  UART描述符
+ * @param[in]   data  发送数据指针
+ * @param[in]   len   发送长度
+ *
+ * @retval  0   成功
+ * @retval  -1  失败
  */
 int uart_transmit_it(uart_desc_t uart, uint8_t *data, uint16_t len)
 {
@@ -222,12 +237,14 @@ int uart_transmit_it(uart_desc_t uart, uint8_t *data, uint16_t len)
 }
 
 /**
- * @brief   中断方式接收数据。
+ * @brief   中断方式接收数据
  *
- * @param[in]   uart  UART描述符。
- * @param[out]  data  接收数据指针。
- * @param[in]   len   接收长度。
- * @return  int 接收结果，0表示成功，-1表示失败。
+ * @param[in]   uart  UART描述符
+ * @param[out]  data  接收数据指针
+ * @param[in]   len   接收长度
+ *
+ * @retval  0   成功
+ * @retval  -1  失败
  */
 int uart_receive_it(uart_desc_t uart, uint8_t *data, uint16_t len)
 {
@@ -239,12 +256,65 @@ int uart_receive_it(uart_desc_t uart, uint8_t *data, uint16_t len)
   return HAL_UART_Receive_IT(&uart->hal_handle, data, len) == HAL_OK ? 0 : -1;
 }
 
+/**
+ * @brief   从环形缓冲区读取数据
+ *
+ * @param[in]   uart  UART描述符
+ * @param[out]  data  接收数据指针
+ * @param[in]   len   期望读取的长度
+ *
+ * @return  实际读取的字节数
+ */
+uint32_t uart_read(uart_desc_t uart, uint8_t *data, uint32_t len)
+{
+  if(uart == NULL || data == NULL || len == 0)
+  {
+    return 0;
+  }
+
+  return RingBuffer_Read(&uart->rx_ringbuf, data, len);
+}
+
+/**
+ * @brief   获取环形缓冲区可用数据长度
+ *
+ * @param[in]   uart  UART描述符
+ *
+ * @return  可读取的字节数
+ */
+uint32_t uart_get_available(uart_desc_t uart)
+{
+  if(uart == NULL)
+  {
+    return 0;
+  }
+
+  return RingBuffer_GetAvailable(&uart->rx_ringbuf);
+}
+
+/**
+ * @brief   清空接收环形缓冲区
+ *
+ * @param[in]   uart  UART描述符
+ *
+ * @return  None
+ */
+void uart_flush_rx(uart_desc_t uart)
+{
+  if(uart == NULL)
+  {
+    return;
+  }
+
+  RingBuffer_Reset(&uart->rx_ringbuf);
+}
 
 
 /**
- * @brief   printf底层输出函数。
+ * @brief   printf底层输出函数
  *
- * @param[in]   character  需要输出的字符。
+ * @param[in]   character  需要输出的字符
+ *
  * @return  None
  */
 void _putchar(char character)
@@ -269,29 +339,15 @@ void USART1_IRQHandler(void)
   {
     __HAL_UART_CLEAR_IDLEFLAG(&uart1_rs232->hal_handle);
 
-    // 停止DMA接收
-    HAL_UART_DMAStop(&uart1_rs232->hal_handle);
-
     // 计算接收到的字节数
-    uint32_t recv_len = sizeof(Uart1_rx_buf) - __HAL_DMA_GET_COUNTER(uart1_rs232->hal_handle.hdmarx);
+    uint32_t recv_len = sizeof(Uart1_rx_buf) - 
+                        __HAL_DMA_GET_COUNTER(uart1_rs232->hal_handle.hdmarx);
 
     if(recv_len > 0 && recv_len <= sizeof(Uart1_rx_buf))
     {
-      // 回显收到的数据
-      HAL_UART_Transmit(&uart1_rs232->hal_handle, Uart1_rx_buf, recv_len, 1000);
-      
-      uint8_t newline[] = "\r\n";
-      HAL_UART_Transmit(&uart1_rs232->hal_handle, newline, 2, 1000);
+      // 将数据写入环形缓冲区
+      RingBuffer_Write(&uart1_rs232->rx_ringbuf, Uart1_rx_buf, recv_len);
     }
-
-    // 清空缓冲区
-    for(uint32_t i = 0; i < sizeof(Uart1_rx_buf); i++)
-    {
-      Uart1_rx_buf[i] = 0;
-    }
-
-    // 重新启动DMA接收
-    HAL_UART_Receive_DMA(&uart1_rs232->hal_handle, Uart1_rx_buf, sizeof(Uart1_rx_buf));
   }
 
   // 调用HAL库的中断处理函数
@@ -311,32 +367,17 @@ void USART2_IRQHandler(void)
   {
     __HAL_UART_CLEAR_IDLEFLAG(&uart2_rs485->hal_handle);
 
-    // 停止DMA接收
-    HAL_UART_DMAStop(&uart2_rs485->hal_handle);
-
     // 计算接收到的字节数
-    uint32_t recv_len = sizeof(Uart2_rx_buf) - __HAL_DMA_GET_COUNTER(uart2_rs485->hal_handle.hdmarx);
+    uint32_t recv_len = sizeof(Uart2_rx_buf) - 
+                        __HAL_DMA_GET_COUNTER(uart2_rs485->hal_handle.hdmarx);
 
     if(recv_len > 0 && recv_len <= sizeof(Uart2_rx_buf))
     {
-      // 回显收到的数据
-      HAL_UART_Transmit(&uart2_rs485->hal_handle, Uart2_rx_buf, recv_len, 1000);
-      
-      uint8_t newline[] = "\r\n";
-      HAL_UART_Transmit(&uart2_rs485->hal_handle, newline, 2, 1000);
+      // 将数据写入环形缓冲区
+      RingBuffer_Write(&uart2_rs485->rx_ringbuf, Uart2_rx_buf, recv_len);
     }
-
-    // 清空缓冲区
-    for(uint32_t i = 0; i < sizeof(Uart2_rx_buf); i++)
-    {
-      Uart2_rx_buf[i] = 0;
-    }
-
-    // 重新启动DMA接收
-    HAL_UART_Receive_DMA(&uart2_rs485->hal_handle, Uart2_rx_buf, sizeof(Uart2_rx_buf));
   }
 
   // 调用HAL库的中断处理函数
   HAL_UART_IRQHandler(&uart2_rs485->hal_handle);
 }
-

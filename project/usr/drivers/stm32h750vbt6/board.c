@@ -41,16 +41,26 @@ static struct gpio_desc s_relay1 = {
 gpio_desc_t relay1 = &s_relay1;
 
 /**
- * @brief UART1 DMA接收缓冲区
+ * @brief UART1 DMA接收缓冲区（硬件DMA使用）
  * @note  32字节对齐确保cache一致性
  */
-__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart1_rx_buf[1024] = {0};
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart1_rx_buf[256] = {0};
 
 /**
- * @brief UART2 DMA接收缓冲区
+ * @brief UART2 DMA接收缓冲区（硬件DMA使用）
  * @note  32字节对齐确保cache一致性
  */
-__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart2_rx_buf[1024] = {0};
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart2_rx_buf[256] = {0};
+
+/**
+ * @brief UART1 环形缓冲区存储空间
+ */
+uint8_t Uart1_ringbuf_storage[2048] = {0};
+
+/**
+ * @brief UART2 环形缓冲区存储空间
+ */
+uint8_t Uart2_ringbuf_storage[2048] = {0};
 
 /**
  * @brief ADC1 DMA缓冲区
