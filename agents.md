@@ -1,5 +1,47 @@
+# Codex 规则
 
+## 代码注释
 
+- 生成新代码时，为关键逻辑和非显而易见步骤添加简短中文注释。
+- 不为简单赋值或自解释语句添加无意义注释。
+
+## 交互称呼
+
+- 每次我运行命令时，回复里要称呼你为 "dylan"；如果没有运行命令，则不需要特别称呼。
+
+## 固定流程
+
+- 永远只读取 agents.md，并默认使用 UTF-8。
+
+---
+
+# Kiro 工作规则
+
+## 文件创建规则
+
+**禁止随意创建 Markdown 文档文件！**
+
+- ❌ 不要为了解释概念而创建 MD 文件
+- ❌ 不要为了写文档而创建 MD 文件
+- ❌ 不要为了总结而创建 MD 文件
+
+**只在以下情况创建文件：**
+- ✅ 用户明确要求创建文件
+- ✅ 项目必需的配置文件（如 CMakeLists.txt）
+- ✅ 项目必需的代码文件（.c, .h）
+
+**正确做法：**
+- 直接在对话中回答问题
+- 用代码注释解释概念
+- 在现有文件中添加注释
+
+## 回答方式
+
+- 简洁明了，不要过度冗长
+- 直接给出解决方案
+- 用代码和注释说明，而不是文档
+
+---
 
 # C代码风格规范 (基于BARR-C嵌入式标准)
 
@@ -58,7 +100,6 @@ void MyFunction(void)
 
 ## 安全编码
 - 使用 `snprintf` 代替 `sprintf` (防止缓冲区溢出)
-<!-- - 避免魔数，用 `const` 或 `#define` 定义常量 -->
 - 指针初始化为 `NULL`
 - 局部变量在声明时初始化
 - 硬件寄存器和中断共享变量必须使用 `volatile`
@@ -86,20 +127,12 @@ void MyFunction(void)
 ```cmake
 ../Middlewares/Third_Party/FreeRTOS/tasks.c                                         #任务代码
 ../Middlewares/Third_Party/FreeRTOS/queue.c                                         #队列代码
-../Middlewares/Third_Party/FreeRTOS/list.c                                          #列表代码
-../Middlewares/Third_Party/FreeRTOS/timers.c                                        #定时器代码
-../Middlewares/Third_Party/FreeRTOS/event_groups.c                                  #事件组代码
-../Middlewares/Third_Party/FreeRTOS/stream_buffer.c                                 #流缓冲区代码
-../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1/port.c                #FreeRTOS针对Cortex-M7的移植文件
-../Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c                       #FreeRTOS内存管理方案
-../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source/cmsis_os2.c   #CMSIS-RTOS2接口文件
 ```
 
 错误示例：
 ```cmake
 ../Middlewares/Third_Party/FreeRTOS/tasks.c         #任务代码
 ../Middlewares/Third_Party/FreeRTOS/queue.c       #队列代码
-../Middlewares/Third_Party/FreeRTOS/list.c        #列表代码
 ```
 
 ## 注释规范 (基于BARR-C与Doxygen标准)

@@ -41,6 +41,13 @@ static void UartRxTask(void *argument);
 
 int main(void)
 {
+  // 在系统初始化之前清零 AXI SRAM(D1)
+  memset((void*)0x24000000, 0, 512 * 1024);  // 清零整个 AXI SRAM (512KB)
+  
+  // 清缓冲区
+  memset(Uart1_dma_rx_buf, 0, sizeof(Uart1_dma_rx_buf));
+  memset(Uart2_dma_rx_buf, 0, sizeof(Uart2_dma_rx_buf));
+
   // 系统初始化
   if(DRV_System_Init() != 0)
   {
@@ -52,7 +59,7 @@ int main(void)
   relay_init(relay1);
   relay_on(relay1);
 
-  // 初始化串口（带环形缓冲区）
+  // 初始化串口（带环形缓冲区）Uart1/2_ringbuf_storage用于环形缓冲区存储
   uart_init(uart2_rs485, Uart2_ringbuf_storage, sizeof(Uart2_ringbuf_storage));
   uart_init(uart1_rs232, Uart1_ringbuf_storage, sizeof(Uart1_ringbuf_storage));
 
@@ -122,18 +129,15 @@ static void BlinkTask(void *argument)
 /**
  * @brief   串口接收处理任务
  *
- * @details 演示环形缓冲区的使用：
- *          1. 检查UART是否有数据
- *          2. 从环形缓冲区读取数据
- *          3. 直接回显数据
- *
+ * @details 【消费者角色】在生产者-消费者模型中作为数据消费者
  * @param[in]   argument  任务参数（未使用）
  *
  * @return  None
  */
 static void UartRxTask(void *argument)
 {
-  uint8_t rx_buffer[128] = {0};
+  // DMA缓冲区必须放在D1域（AXI SRAM），确保DMA能访问
+  __attribute__((section(".ram_d1"))) __attribute__((aligned(32))) static uint8_t rx_buffer[128] = {0};
   uint32_t rx_len = 0;
 
   (void)argument;
@@ -144,15 +148,12 @@ static void UartRxTask(void *argument)
     if(uart_get_available(uart1_rs232) > 0)
     {
       // 从环形缓冲区读取数据
-      rx_len = uart_read(uart1_rs232, rx_buffer, sizeof(rx_buffer));
+      rx_len = uart_read_ringbuf(uart1_rs232, rx_buffer, sizeof(rx_buffer));
 
       if(rx_len > 0)
       {
-        // 通过UART1回显接收到的数据
-        uart_transmit(uart1_rs232, rx_buffer, rx_len, 1000);
-
-        // 清空缓冲区
-        memset(rx_buffer, 0, sizeof(rx_buffer));
+        // DMA发送
+        uart_transmit_dma(uart1_rs232, rx_buffer, rx_len);
       }
     }
 
@@ -160,20 +161,17 @@ static void UartRxTask(void *argument)
     if(uart_get_available(uart2_rs485) > 0)
     {
       // 从环形缓冲区读取数据
-      rx_len = uart_read(uart2_rs485, rx_buffer, sizeof(rx_buffer));
+      rx_len = uart_read_ringbuf(uart2_rs485, rx_buffer, sizeof(rx_buffer));
 
       if(rx_len > 0)
       {
-        // 通过UART2回显接收到的数据
-        uart_transmit(uart2_rs485, rx_buffer, rx_len, 1000);
-
-        // 清空缓冲区
-        memset(rx_buffer, 0, sizeof(rx_buffer));
+        // DMA发送
+        uart_transmit_dma(uart2_rs485, rx_buffer, rx_len);
       }
     }
 
-    // 延时10ms，避免CPU占用过高
-    osDelay(10);
+    // 延时1ms，高速轮询
+    osDelay(1);
   }
 }
 

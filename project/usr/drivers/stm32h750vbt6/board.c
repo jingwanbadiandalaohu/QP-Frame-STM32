@@ -43,24 +43,34 @@ gpio_desc_t relay1 = &s_relay1;
 /**
  * @brief UART1 DMA接收缓冲区（硬件DMA使用）
  * @note  32字节对齐确保cache一致性
+ * @note  GCC使用section属性，Keil AC5使用__at关键字指定地址
  */
-__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart1_rx_buf[256] = {0};
+#if defined(__GNUC__)
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart1_dma_rx_buf[256] = {0};
+#elif defined(__CC_ARM)
+__align(32) uint8_t Uart1_dma_rx_buf[256] __attribute__((at(0x24000200)));
+#endif
 
 /**
  * @brief UART2 DMA接收缓冲区（硬件DMA使用）
  * @note  32字节对齐确保cache一致性
+ * @note  GCC使用section属性，Keil AC5使用__at关键字指定地址
  */
-__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart2_rx_buf[256] = {0};
+#if defined(__GNUC__)
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart2_dma_rx_buf[256] = {0};
+#elif defined(__CC_ARM)
+__align(32) uint8_t Uart2_dma_rx_buf[256] __attribute__((at(0x24000100)));
+#endif
 
 /**
  * @brief UART1 环形缓冲区存储空间
  */
-uint8_t Uart1_ringbuf_storage[2048] = {0};
+uint8_t Uart1_ringbuf_storage[512] = {0};
 
 /**
  * @brief UART2 环形缓冲区存储空间
  */
-uint8_t Uart2_ringbuf_storage[2048] = {0};
+uint8_t Uart2_ringbuf_storage[512] = {0};
 
 /**
  * @brief ADC1 DMA缓冲区

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file    board.h
  * @author  Dylan
  * @date    2026-01-15
@@ -39,22 +39,22 @@ extern uart_desc_t uart1_rs232;
 /**
  * @brief UART1 DMA接收缓冲区（硬件DMA使用）
  */
-extern uint8_t Uart1_rx_buf[256];
+extern uint8_t Uart1_dma_rx_buf[256];
 
 /**
  * @brief UART2 DMA接收缓冲区（硬件DMA使用）
  */
-extern uint8_t Uart2_rx_buf[256];
+extern uint8_t Uart2_dma_rx_buf[256];
 
 /**
  * @brief UART1 环形缓冲区存储空间
  */
-extern uint8_t Uart1_ringbuf_storage[2048];
+extern uint8_t Uart1_ringbuf_storage[512];
 
 /**
  * @brief UART2 环形缓冲区存储空间
  */
-extern uint8_t Uart2_ringbuf_storage[2048];
+extern uint8_t Uart2_ringbuf_storage[512];
 
 /**
  * @brief ADC描述符

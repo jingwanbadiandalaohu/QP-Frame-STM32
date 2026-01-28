@@ -9,6 +9,7 @@
 #define DRV_UART_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,7 +47,7 @@ void uart_init(uart_desc_t uart, uint8_t *ringbuf_storage, uint32_t ringbuf_size
 int uart_transmit(uart_desc_t uart, uint8_t *data, uint16_t len, uint32_t timeout);
 
 /**
- * @brief   阻塞方式接收数据
+ * @brief   阻塞方式接收数据（直接从硬件接收，不经过环形缓冲区）
  *
  * @param[in]   uart     UART描述符
  * @param[out]  data     接收数据指针
@@ -83,7 +84,29 @@ int uart_transmit_it(uart_desc_t uart, uint8_t *data, uint16_t len);
 int uart_receive_it(uart_desc_t uart, uint8_t *data, uint16_t len);
 
 /**
- * @brief   从环形缓冲区读取数据
+ * @brief   DMA方式发送数据（非阻塞）
+ *
+ * @param[in]   uart  UART描述符
+ * @param[in]   data  发送数据指针
+ * @param[in]   len   发送长度
+ *
+ * @retval  0   成功
+ * @retval  -1  失败
+ */
+int uart_transmit_dma(uart_desc_t uart, uint8_t *data, uint16_t len);
+
+/**
+ * @brief   检查UART发送是否空闲
+ *
+ * @param[in]   uart  UART描述符
+ *
+ * @retval  true   发送空闲
+ * @retval  false  发送忙
+ */
+bool uart_is_tx_idle(uart_desc_t uart);
+
+/**
+ * @brief   从环形缓冲区读取数据（非阻塞）
  *
  * @param[in]   uart  UART描述符
  * @param[out]  data  接收数据指针
@@ -91,7 +114,7 @@ int uart_receive_it(uart_desc_t uart, uint8_t *data, uint16_t len);
  *
  * @return  实际读取的字节数
  */
-uint32_t uart_read(uart_desc_t uart, uint8_t *data, uint32_t len);
+uint32_t uart_read_ringbuf(uart_desc_t uart, uint8_t *data, uint32_t len);
 
 /**
  * @brief   获取环形缓冲区可用数据长度

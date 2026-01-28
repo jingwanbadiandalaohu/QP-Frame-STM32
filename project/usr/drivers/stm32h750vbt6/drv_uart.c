@@ -22,7 +22,7 @@
  *          DMA+IDLE+环形缓冲区接收机制：
  *          - DMA工作在循环模式，持续接收数据到临时缓冲区
  *          - IDLE中断触发时，将DMA缓冲区数据写入环形缓冲区
- *          - 应用层通过uart_read从环形缓冲区读取数据
+ *          - 应用层通过uart_read_ringbuf从环形缓冲区读取数据
  *          - 环形缓冲区避免数据丢失，支持连续高速接收
  *          
  * @note    UART DMA缓冲区需确保32字节对齐
@@ -34,6 +34,8 @@
 #include "drv_uart_desc.h"
 #include "board.h"
 #include "ringbuffer.h"
+#include <string.h>
+#include <stdbool.h>
 
 
 /**
@@ -75,7 +77,7 @@ void uart_init(uart_desc_t uart, uint8_t *ringbuf_storage, uint32_t ringbuf_size
     __HAL_UART_ENABLE_IT(&uart->hal_handle, UART_IT_IDLE);
 
     // 启动DMA接收
-    HAL_UART_Receive_DMA(&uart->hal_handle, Uart1_rx_buf, sizeof(Uart1_rx_buf));
+    HAL_UART_Receive_DMA(&uart->hal_handle, Uart1_dma_rx_buf, sizeof(Uart1_dma_rx_buf));
   }
   else if(uart->instance == USART2)
   {
@@ -83,7 +85,7 @@ void uart_init(uart_desc_t uart, uint8_t *ringbuf_storage, uint32_t ringbuf_size
     __HAL_UART_ENABLE_IT(&uart->hal_handle, UART_IT_IDLE);
 
     // 启动DMA接收
-    HAL_UART_Receive_DMA(&uart->hal_handle, Uart2_rx_buf, sizeof(Uart2_rx_buf));
+    HAL_UART_Receive_DMA(&uart->hal_handle, Uart2_dma_rx_buf, sizeof(Uart2_dma_rx_buf));
   }
 }
 
@@ -106,6 +108,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
   if(huart->Instance == USART1)
   {
     static DMA_HandleTypeDef hdma_usart1_rx;
+    static DMA_HandleTypeDef hdma_usart1_tx;
 
     __HAL_RCC_USART1_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -119,7 +122,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    // 配置DMA,Uart1 - DMA1 Stream3
+    // 配置DMA接收,Uart1 - DMA1 Stream3
     hdma_usart1_rx.Instance = DMA1_Stream3;
     hdma_usart1_rx.Init.Request = DMA_REQUEST_USART1_RX;
     hdma_usart1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
@@ -134,12 +137,29 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 
     __HAL_LINKDMA(huart, hdmarx, hdma_usart1_rx);
 
+    // 配置DMA发送,Uart1 - DMA1 Stream5
+    hdma_usart1_tx.Instance = DMA1_Stream5;
+    hdma_usart1_tx.Init.Request = DMA_REQUEST_USART1_TX;
+    hdma_usart1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    hdma_usart1_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_usart1_tx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_usart1_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_usart1_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_usart1_tx.Init.Mode = DMA_NORMAL;
+    hdma_usart1_tx.Init.Priority = DMA_PRIORITY_LOW;
+    hdma_usart1_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    HAL_DMA_Init(&hdma_usart1_tx);
+
+    __HAL_LINKDMA(huart, hdmatx, hdma_usart1_tx);
+
+    // 使能UART中断（用于IDLE中断接收）
     HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
   }
   else if(huart->Instance == USART2)
   {
     static DMA_HandleTypeDef hdma_usart2_rx;
+    static DMA_HandleTypeDef hdma_usart2_tx;
 
     __HAL_RCC_USART2_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -152,7 +172,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    // 配置DMA,Uart2 - DMA1 Stream4
+    // 配置DMA接收,Uart2 - DMA1 Stream4
     hdma_usart2_rx.Instance = DMA1_Stream4;
     hdma_usart2_rx.Init.Request = DMA_REQUEST_USART2_RX;
     hdma_usart2_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
@@ -167,6 +187,22 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 
     __HAL_LINKDMA(huart, hdmarx, hdma_usart2_rx);
 
+    // 配置DMA发送,Uart2 - DMA1 Stream6
+    hdma_usart2_tx.Instance = DMA1_Stream6;
+    hdma_usart2_tx.Init.Request = DMA_REQUEST_USART2_TX;
+    hdma_usart2_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    hdma_usart2_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_usart2_tx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_usart2_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_usart2_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_usart2_tx.Init.Mode = DMA_NORMAL;
+    hdma_usart2_tx.Init.Priority = DMA_PRIORITY_LOW;
+    hdma_usart2_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    HAL_DMA_Init(&hdma_usart2_tx);
+
+    __HAL_LINKDMA(huart, hdmatx, hdma_usart2_tx);
+
+    // 使能UART中断（用于IDLE中断接收）
     HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
   }
@@ -257,7 +293,52 @@ int uart_receive_it(uart_desc_t uart, uint8_t *data, uint16_t len)
 }
 
 /**
- * @brief   从环形缓冲区读取数据
+ * @brief   DMA方式发送数据（非阻塞）
+ *
+ * @param[in]   uart  UART描述符
+ * @param[in]   data  发送数据指针
+ * @param[in]   len   发送长度
+ *
+ * @retval  0   成功
+ * @retval  -1  失败（DMA忙或参数错误）
+ */
+int uart_transmit_dma(uart_desc_t uart, uint8_t *data, uint16_t len)
+{
+  if(uart == NULL || data == NULL || len == 0)
+  {
+    return -1;
+  }
+
+  return HAL_UART_Transmit_DMA(&uart->hal_handle, data, len) == HAL_OK ? 0 : -1;
+}
+
+/**
+ * @brief   检查UART发送是否空闲
+ *
+ * @param[in]   uart  UART描述符
+ *
+ * @retval  true   发送空闲（可以启动新的发送）
+ * @retval  false  发送忙（DMA正在发送）
+ */
+bool uart_is_tx_idle(uart_desc_t uart)
+{
+  if(uart == NULL)
+  {
+    return true;
+  }
+
+  // 检查UART状态：只要不是正在发送就认为空闲
+  HAL_UART_StateTypeDef state = HAL_UART_GetState(&uart->hal_handle);
+  
+  // HAL_UART_STATE_READY: 完全空闲
+  // HAL_UART_STATE_BUSY_RX: 只在接收，发送空闲
+  // HAL_UART_STATE_BUSY_TX: 正在发送，不空闲
+  // HAL_UART_STATE_BUSY_TX_RX: 收发都忙，不空闲
+  return (state != HAL_UART_STATE_BUSY_TX) && (state != HAL_UART_STATE_BUSY_TX_RX);
+}
+
+/**
+ * @brief   从环形缓冲区读取数据（非阻塞）
  *
  * @param[in]   uart  UART描述符
  * @param[out]  data  接收数据指针
@@ -265,7 +346,7 @@ int uart_receive_it(uart_desc_t uart, uint8_t *data, uint16_t len)
  *
  * @return  实际读取的字节数
  */
-uint32_t uart_read(uart_desc_t uart, uint8_t *data, uint32_t len)
+uint32_t uart_read_ringbuf(uart_desc_t uart, uint8_t *data, uint32_t len)
 {
   if(uart == NULL || data == NULL || len == 0)
   {
@@ -329,6 +410,20 @@ void _putchar(char character)
 /**
  * @brief   USART1中断服务函数
  *
+ * @details 【生产者角色】在生产者-消费者模型中作为数据生产者
+ *          
+ *          工作流程：
+ *          1. 检测IDLE中断（串口空闲，表示一帧数据接收完成）
+ *          2. 计算DMA接收到的数据长度
+ *          3. 将数据从DMA缓冲区写入环形缓冲区（生产数据）
+ *          4. 重启DMA接收，准备下一帧
+ *
+ *          生产特点：
+ *          - 运行在中断上下文（高优先级）
+ *          - 快速写入，立即返回
+ *          - 不关心消费者是否读取
+ *          - 满了自动覆盖旧数据（覆盖模式）
+ *
  * @param   None
  * @return  None
  */
@@ -340,13 +435,19 @@ void USART1_IRQHandler(void)
     __HAL_UART_CLEAR_IDLEFLAG(&uart1_rs232->hal_handle);
 
     // 计算接收到的字节数
-    uint32_t recv_len = sizeof(Uart1_rx_buf) - 
+    uint32_t recv_len = sizeof(Uart1_dma_rx_buf) - 
                         __HAL_DMA_GET_COUNTER(uart1_rs232->hal_handle.hdmarx);
 
-    if(recv_len > 0 && recv_len <= sizeof(Uart1_rx_buf))
+    if(recv_len > 0 && recv_len <= sizeof(Uart1_dma_rx_buf))
     {
       // 将数据写入环形缓冲区
-      RingBuffer_Write(&uart1_rs232->rx_ringbuf, Uart1_rx_buf, recv_len);
+      RingBuffer_Write(&uart1_rs232->rx_ringbuf, Uart1_dma_rx_buf, recv_len);
+
+      // 停止DMA接收
+      HAL_UART_DMAStop(&uart1_rs232->hal_handle);
+
+      // 重新启动DMA接收
+      HAL_UART_Receive_DMA(&uart1_rs232->hal_handle, Uart1_dma_rx_buf, sizeof(Uart1_dma_rx_buf));
     }
   }
 
@@ -356,6 +457,20 @@ void USART1_IRQHandler(void)
 
 /**
  * @brief   USART2中断服务函数
+ *
+ * @details 【生产者角色】在生产者-消费者模型中作为数据生产者
+ *          
+ *          工作流程：
+ *          1. 检测IDLE中断（串口空闲，表示一帧数据接收完成）
+ *          2. 计算DMA接收到的数据长度
+ *          3. 将数据从DMA缓冲区写入环形缓冲区（生产数据）
+ *          4. 重启DMA接收，准备下一帧
+ *
+ *          生产特点：
+ *          - 运行在中断上下文（高优先级）
+ *          - 快速写入，立即返回
+ *          - 不关心消费者是否读取
+ *          - 满了自动覆盖旧数据（覆盖模式）
  *
  * @param   None
  * @return  None
@@ -368,16 +483,23 @@ void USART2_IRQHandler(void)
     __HAL_UART_CLEAR_IDLEFLAG(&uart2_rs485->hal_handle);
 
     // 计算接收到的字节数
-    uint32_t recv_len = sizeof(Uart2_rx_buf) - 
+    uint32_t recv_len = sizeof(Uart2_dma_rx_buf) - 
                         __HAL_DMA_GET_COUNTER(uart2_rs485->hal_handle.hdmarx);
 
-    if(recv_len > 0 && recv_len <= sizeof(Uart2_rx_buf))
+    if(recv_len > 0 && recv_len <= sizeof(Uart2_dma_rx_buf))
     {
       // 将数据写入环形缓冲区
-      RingBuffer_Write(&uart2_rs485->rx_ringbuf, Uart2_rx_buf, recv_len);
+      RingBuffer_Write(&uart2_rs485->rx_ringbuf, Uart2_dma_rx_buf, recv_len);
+
+      // 停止DMA接收
+      HAL_UART_DMAStop(&uart2_rs485->hal_handle);
+
+      // 重新启动DMA接收
+      HAL_UART_Receive_DMA(&uart2_rs485->hal_handle, Uart2_dma_rx_buf, sizeof(Uart2_dma_rx_buf));
     }
   }
 
   // 调用HAL库的中断处理函数
   HAL_UART_IRQHandler(&uart2_rs485->hal_handle);
 }
+
