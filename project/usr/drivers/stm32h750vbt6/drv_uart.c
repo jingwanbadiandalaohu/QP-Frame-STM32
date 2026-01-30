@@ -37,7 +37,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-
 /**
  * @brief   初始化UART
  *
@@ -66,25 +65,33 @@ void uart_init(uart_desc_t uart, uint8_t *ringbuf_storage, uint32_t ringbuf_size
   uart->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   uart->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
 
+  // HAL_UART_Init会调用HAL_UART_MspInit初始化DMA
   if(HAL_UART_Init(&uart->hal_handle) != HAL_OK)
   {
     return;
   }
 
+  // DMA初始化完成后，再启动接收和使能IDLE中断
   if(uart->instance == USART1)
   {
+    // 清除可能存在的IDLE标志
+    __HAL_UART_CLEAR_IDLEFLAG(&uart->hal_handle);
+    
     // 使能空闲中断
     __HAL_UART_ENABLE_IT(&uart->hal_handle, UART_IT_IDLE);
 
-    // 启动DMA接收
+    // 启动DMA循环接收
     HAL_UART_Receive_DMA(&uart->hal_handle, Uart1_dma_rx_buf, sizeof(Uart1_dma_rx_buf));
   }
   else if(uart->instance == USART2)
   {
+    // 清除可能存在的IDLE标志
+    __HAL_UART_CLEAR_IDLEFLAG(&uart->hal_handle);
+    
     // 使能空闲中断
     __HAL_UART_ENABLE_IT(&uart->hal_handle, UART_IT_IDLE);
 
-    // 启动DMA接收
+    // 启动DMA循环接收
     HAL_UART_Receive_DMA(&uart->hal_handle, Uart2_dma_rx_buf, sizeof(Uart2_dma_rx_buf));
   }
 }

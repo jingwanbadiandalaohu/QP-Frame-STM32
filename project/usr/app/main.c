@@ -23,6 +23,7 @@
 // 设备层
 #include "led.h"
 #include "relay.h"
+#include "modbus.h"
 
 // 驱动层
 #include "drv_system.h"
@@ -33,10 +34,21 @@
 
 // LED闪烁任务
 static void BlinkTask(void *argument);
-// 串口接收处理任务
-static void UartRxTask(void *argument);
+// Modbus从机任务
+static void Modbus1Task(void *argument);
+static void Modbus2Task(void *argument);
+
+
+
 // // ADC采样打印任务，包含两级滤波
 // static void AdcPrintTask(void *argument);
+
+// Modbus从机设备
+static modbus_dev_t g_modbus_1;
+static modbus_dev_t g_modbus_2;
+// Modbus保持寄存器（100个）
+static uint16_t g_modbus1_regs[100] = {0};
+static uint16_t g_modbus2_regs[100] = {0};
 
 
 int main(void)
@@ -59,14 +71,23 @@ int main(void)
   relay_init(relay1);
   relay_on(relay1);
 
-  // 初始化串口（带环形缓冲区）Uart1/2_ringbuf_storage用于环形缓冲区存储
-  uart_init(uart2_rs485, Uart2_ringbuf_storage, sizeof(Uart2_ringbuf_storage));
+  // 初始化串口 Uart1/2_ringbuf_storage用于环形缓冲区存储
   uart_init(uart1_rs232, Uart1_ringbuf_storage, sizeof(Uart1_ringbuf_storage));
+  uart_init(uart2_rs485, Uart2_ringbuf_storage, sizeof(Uart2_ringbuf_storage));
+
+  // 初始化Modbus从机（地址1，使用uart2_rs485，100个寄存器）
+  modbus_init(&g_modbus_1, uart1_rs232, 1, g_modbus1_regs, 100);
+  modbus_init(&g_modbus_2, uart2_rs485, 1, g_modbus2_regs, 100);
+  
+  modbus_set_byte_timeout(&g_modbus_1, 250);  //设置字节间超时
+  modbus_set_byte_timeout(&g_modbus_2, 250);
+  modbus_set_read_timeout(&g_modbus_1, 600);  //设置读总超时
+  modbus_set_read_timeout(&g_modbus_2, 600);
 
   // 初始化ADC
   adc_init(adc1);
   adc_init(adc2);
-  adc_start_dma(adc1);
+  adc_start_dma(adc1);  
   adc_start_dma(adc2);
   
   // 初始化RTOS内核
@@ -81,14 +102,26 @@ int main(void)
   };
   osThreadNew(BlinkTask, NULL, &blinkTask_attributes);
 
-  // 创建串口接收处理任务
-  const osThreadAttr_t uartRxTask_attributes =
+  // 创建Modbus1从机任务
+  const osThreadAttr_t modbus1Task_attributes =
   {
-    .name = "UartRxTask",
+    .name = "Modbus1Task",
     .stack_size = 512 * 4,
     .priority = (osPriority_t)osPriorityNormal,
   };
-  osThreadNew(UartRxTask, NULL, &uartRxTask_attributes);
+
+  osThreadNew(Modbus1Task, NULL, &modbus1Task_attributes);
+
+  // 创建Modbus2从机任务
+  const osThreadAttr_t modbus2Task_attributes =
+  {
+    .name = "Modbus2Task",
+    .stack_size = 512 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
+  };
+
+  osThreadNew(Modbus2Task, NULL, &modbus2Task_attributes);
+
 
   // 创建ADC打印任务（实时优先级）
   // const osThreadAttr_t adcPrintTask_attributes =
@@ -127,53 +160,62 @@ static void BlinkTask(void *argument)
 }
 
 /**
- * @brief   串口接收处理任务
+ * @brief   Modbus从机任务
  *
- * @details 【消费者角色】在生产者-消费者模型中作为数据消费者
+ * @details 循环调用modbus_poll()处理Modbus请求，
+ *          主机可通过功能码0x03读取保持寄存器
+ *
  * @param[in]   argument  任务参数（未使用）
  *
  * @return  None
  */
-static void UartRxTask(void *argument)
+static void Modbus1Task(void *argument)
 {
-  // DMA缓冲区必须放在D1域（AXI SRAM），确保DMA能访问
-  __attribute__((section(".ram_d1"))) __attribute__((aligned(32))) static uint8_t rx_buffer[128] = {0};
-  uint32_t rx_len = 0;
-
   (void)argument;
+
+  // 初始化测试数据（可选）
+  for(uint16_t i = 0; i < 100; i++)
+  {
+    g_modbus1_regs[i] = i * 10;  // 寄存器0=0, 1=10, 2=20...
+  }
 
   while(1)
   {
-    // 检查UART1环形缓冲区是否有数据
-    if(uart_get_available(uart1_rs232) > 0)
-    {
-      // 从环形缓冲区读取数据
-      rx_len = uart_read_ringbuf(uart1_rs232, rx_buffer, sizeof(rx_buffer));
-
-      if(rx_len > 0)
-      {
-        // DMA发送
-        uart_transmit_dma(uart1_rs232, rx_buffer, rx_len);
-      }
-    }
-
-    // 检查UART2环形缓冲区是否有数据
-    if(uart_get_available(uart2_rs485) > 0)
-    {
-      // 从环形缓冲区读取数据
-      rx_len = uart_read_ringbuf(uart2_rs485, rx_buffer, sizeof(rx_buffer));
-
-      if(rx_len > 0)
-      {
-        // DMA发送
-        uart_transmit_dma(uart2_rs485, rx_buffer, rx_len);
-      }
-    }
-
-    // 延时1ms，高速轮询
-    osDelay(1);
+    // 处理Modbus请求（阻塞式，内部会等待接收）
+    modbus_poll(&g_modbus_1);
   }
 }
+
+/**
+ * @brief   Modbus从机任务
+ *
+ * @details 循环调用modbus_poll()处理Modbus请求，
+ *          主机可通过功能码0x03读取保持寄存器
+ *
+ * @param[in]   argument  任务参数（未使用）
+ *
+ * @return  None
+ */
+static void Modbus2Task(void *argument)
+{
+  (void)argument;
+
+  // 初始化测试数据（可选）
+  for(uint16_t i = 0; i < 100; i++)
+  {
+    g_modbus2_regs[i] = i * 10;  // 寄存器0=0, 1=10, 2=20...
+  }
+
+  while(1)
+  {
+    // 处理Modbus请求（阻塞式，内部会等待接收）
+    modbus_poll(&g_modbus_2);
+  }
+}
+
+
+
+
 
 
 // // 定义ADC滤波器

@@ -61,6 +61,7 @@ set(PRO_SRC
 
     device/led.c                                                                    #LED设备
     device/relay.c                                                                  #继电器设备
+    device/modbus.c                                                                 #Modbus设备
 
     common/filter/filter.c                                                          #滤波器
     common/ringbuffer/ringbuffer.c                                                  #环形缓冲区
@@ -81,6 +82,8 @@ set(MIDDLEWARE_SRC
     ../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1/port.c            #FreeRTOS针对Cortex-M7的移植文件
     ../Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c                   #FreeRTOS内存管理方案
     ../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source/cmsis_os2.c #CMSIS-RTOS2接口文件
+
+    ../Middlewares/Third_Party/nanoMODBUS/nanomodbus.c                              #nanoMODBUS库
 )
 
 # ============================================================================
@@ -109,6 +112,8 @@ target_include_directories(${__PROJ_NAME__} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1 #FreeRTOS移植头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Include #CMSIS-RTOS2头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS_5/CMSIS/RTOS2/Include #CMSIS RTOS2头文件
+
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/nanoMODBUS                 #nanoMODBUS头文件
 )
 
 # ============================================================================
