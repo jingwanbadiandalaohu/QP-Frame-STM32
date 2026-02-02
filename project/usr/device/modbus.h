@@ -30,6 +30,7 @@ typedef struct
   uint8_t slave_addr;    /**< 从机地址 */
   uint16_t *regs;        /**< 保持寄存器数组指针 */
   uint16_t regs_count;   /**< 保持寄存器数量 */
+  uint16_t base_addr;    /**< 寄存器起始地址 */
 } modbus_dev_t;
 
 /**
@@ -40,11 +41,12 @@ typedef struct
  * @param[in]   slave_addr  从机地址（1-247）
  * @param[in]   regs        保持寄存器数组指针
  * @param[in]   regs_count  保持寄存器数量
+ * @param[in]   base_addr   寄存器起始地址（如100表示地址100-199）
  *
  * @return  None
  */
 void modbus_init(modbus_dev_t *dev, uart_desc_t uart, uint8_t slave_addr,
-                 uint16_t *regs, uint16_t regs_count);
+                 uint16_t *regs, uint16_t regs_count, uint16_t base_addr);
 
 /**
  * @brief   Modbus从机轮询处理函数
@@ -76,6 +78,18 @@ void modbus_set_read_timeout(modbus_dev_t *dev, int32_t timeout_ms);
  * @return  None
  */
 void modbus_set_byte_timeout(modbus_dev_t *dev, int32_t timeout_ms);
+
+/**
+ * @brief   更新Modbus寄存器数据
+ *
+ * @param[in]   regs  寄存器数组指针
+ *
+ * @return  None
+ *
+ * @note    该函数填充传感器数据到Modbus寄存器，
+ *          地址映射：100-109模拟板，110-119数字板，141传感器类型
+ */
+void modbus_update_regs(uint16_t *regs);
 
 #ifdef __cplusplus
 }

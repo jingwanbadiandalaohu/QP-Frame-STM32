@@ -39,7 +39,6 @@ static void Modbus1Task(void *argument);
 static void Modbus2Task(void *argument);
 
 
-
 // // ADC采样打印任务，包含两级滤波
 // static void AdcPrintTask(void *argument);
 
@@ -47,8 +46,7 @@ static void Modbus2Task(void *argument);
 static modbus_dev_t g_modbus_1;
 static modbus_dev_t g_modbus_2;
 // Modbus保持寄存器（100个）
-static uint16_t g_modbus1_regs[100] = {0};
-static uint16_t g_modbus2_regs[100] = {0};
+static uint16_t g_modbus_regs[100] = {0};
 
 
 int main(void)
@@ -75,9 +73,9 @@ int main(void)
   uart_init(uart1_rs232, Uart1_ringbuf_storage, sizeof(Uart1_ringbuf_storage));
   uart_init(uart2_rs485, Uart2_ringbuf_storage, sizeof(Uart2_ringbuf_storage));
 
-  // 初始化Modbus从机（地址1，使用uart2_rs485，100个寄存器）
-  modbus_init(&g_modbus_1, uart1_rs232, 1, g_modbus1_regs, 100);
-  modbus_init(&g_modbus_2, uart2_rs485, 1, g_modbus2_regs, 100);
+  // 初始化Modbus从机（地址145，寄存器地址100-199）
+  modbus_init(&g_modbus_1, uart1_rs232, 145, g_modbus_regs, 100, 100);
+  modbus_init(&g_modbus_2, uart2_rs485, 145, g_modbus_regs, 100, 100);
   
   modbus_set_byte_timeout(&g_modbus_1, 250);  //设置字节间超时
   modbus_set_byte_timeout(&g_modbus_2, 250);
@@ -154,6 +152,7 @@ static void BlinkTask(void *argument)
 
   while(1)
   {
+    modbus_update_regs(g_modbus_regs);
     led_toggle(led1);
     osDelay(500);
   }
@@ -172,12 +171,6 @@ static void BlinkTask(void *argument)
 static void Modbus1Task(void *argument)
 {
   (void)argument;
-
-  // 初始化测试数据（可选）
-  for(uint16_t i = 0; i < 100; i++)
-  {
-    g_modbus1_regs[i] = i * 10;  // 寄存器0=0, 1=10, 2=20...
-  }
 
   while(1)
   {
@@ -200,23 +193,12 @@ static void Modbus2Task(void *argument)
 {
   (void)argument;
 
-  // 初始化测试数据（可选）
-  for(uint16_t i = 0; i < 100; i++)
-  {
-    g_modbus2_regs[i] = i * 10;  // 寄存器0=0, 1=10, 2=20...
-  }
-
   while(1)
   {
     // 处理Modbus请求（阻塞式，内部会等待接收）
     modbus_poll(&g_modbus_2);
   }
 }
-
-
-
-
-
 
 // // 定义ADC滤波器
 // static MAF_Handle_t s_adc_filter_1;

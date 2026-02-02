@@ -71,8 +71,6 @@ set(PRO_SRC
 # 中间件源文件
 # ============================================================================
 set(MIDDLEWARE_SRC
-    ../Middlewares/Third_Party/Printf/printf.c                                      #Printf库
-
     ../Middlewares/Third_Party/FreeRTOS/tasks.c                                     #任务代码
     ../Middlewares/Third_Party/FreeRTOS/queue.c                                     #队列代码
     ../Middlewares/Third_Party/FreeRTOS/list.c                                      #列表代码
@@ -83,6 +81,7 @@ set(MIDDLEWARE_SRC
     ../Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c                   #FreeRTOS内存管理方案
     ../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source/cmsis_os2.c #CMSIS-RTOS2接口文件
 
+    ../Middlewares/Third_Party/Printf/printf.c                                      #Printf库
     ../Middlewares/Third_Party/nanoMODBUS/nanomodbus.c                              #nanoMODBUS库
 )
 
@@ -105,7 +104,6 @@ target_include_directories(${__PROJ_NAME__} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/core                                                  #核心层头文件
     ${CMAKE_CURRENT_LIST_DIR}/core/${PLATFORM}                                      #平台核心头文件
 
-    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/Printf                     #Printf库头文件
 
     ${CMAKE_CURRENT_LIST_DIR}/inc/${PLATFORM}                                       #平台配置头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/FreeRTOS/include          #FreeRTOS头文件
@@ -113,6 +111,7 @@ target_include_directories(${__PROJ_NAME__} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Include #CMSIS-RTOS2头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS_5/CMSIS/RTOS2/Include #CMSIS RTOS2头文件
 
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/Printf                     #Printf库头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/nanoMODBUS                 #nanoMODBUS头文件
 )
 

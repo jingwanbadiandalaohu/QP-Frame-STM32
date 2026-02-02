@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32H750xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Inc;..\..\..\mcu\stm32h750vbt6\CMSIS\Include;..\..\..\mcu\stm32h750vbt6\CMSIS\Device\ST\STM32H7xx\Include;..\..\Middlewares\Third_Party\FreeRTOS\include;..\..\Middlewares\Third_Party\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\..\Middlewares\Third_Party\CMSIS-FreeRTOS\CMSIS\RTOS2\FreeRTOS\Include;..\..\Middlewares\Third_Party\CMSIS_5\CMSIS\RTOS2\Include;..\..\Middlewares\Third_Party\Printf;..\..\usr\core\stm32h750vbt6;..\..\usr\app;..\..\usr\inc\stm32h750vbt6;..\..\usr\drivers\stm32h750vbt6;..\..\usr\device;..\..\usr\drivers;..\..\usr\common\filter;..\..\usr\common\ringbuffer</IncludePath>
+              <IncludePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Inc;..\..\..\mcu\stm32h750vbt6\CMSIS\Include;..\..\..\mcu\stm32h750vbt6\CMSIS\Device\ST\STM32H7xx\Include;..\..\Middlewares\Third_Party\FreeRTOS\include;..\..\Middlewares\Third_Party\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\..\Middlewares\Third_Party\CMSIS-FreeRTOS\CMSIS\RTOS2\FreeRTOS\Include;..\..\Middlewares\Third_Party\CMSIS_5\CMSIS\RTOS2\Include;..\..\Middlewares\Third_Party\Printf;..\..\Middlewares\Third_Party\nanoMODBUS;..\..\usr\core\stm32h750vbt6;..\..\usr\app;..\..\usr\inc\stm32h750vbt6;..\..\usr\drivers\stm32h750vbt6;..\..\usr\device;..\..\usr\drivers;..\..\usr\common\filter;..\..\usr\common\ringbuffer</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -402,6 +402,11 @@
               <FileName>relay.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\usr\device\relay.c</FilePath>
+            </File>
+            <File>
+              <FileName>modbus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\device\modbus.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -592,6 +597,16 @@
               <FileName>printf.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\Middlewares\Third_Party\Printf\printf.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Middlewares\Third_Party\NanoModbus</GroupName>
+          <Files>
+            <File>
+              <FileName>nanomodbus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Middlewares\Third_Party\nanoMODBUS\nanomodbus.c</FilePath>
             </File>
           </Files>
         </Group>

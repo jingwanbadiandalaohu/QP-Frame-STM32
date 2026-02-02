@@ -139,14 +139,16 @@ static nmbs_error modbus_read_holding_regs_callback(uint16_t address, uint16_t q
   (void) unit_id;
   modbus_dev_t *dev = (modbus_dev_t *)arg;
 
-  // 检查地址范围
-  if(address + quantity > dev->regs_count)
+  // 检查地址范围：必须在 [base_addr, base_addr + regs_count) 内
+  if(address < dev->base_addr || 
+     address + quantity > dev->base_addr + dev->regs_count)
   {
     return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
   }
 
-  // 复制寄存器数据
-  memcpy(registers_out, &dev->regs[address], quantity * sizeof(uint16_t));
+  // 转换为数组索引：Modbus地址 → 数组索引
+  uint16_t index = address - dev->base_addr;
+  memcpy(registers_out, &dev->regs[index], quantity * sizeof(uint16_t));
 
   return NMBS_ERROR_NONE;
 }
@@ -159,11 +161,12 @@ static nmbs_error modbus_read_holding_regs_callback(uint16_t address, uint16_t q
  * @param[in]   slave_addr  从机地址（1-247）
  * @param[in]   regs        保持寄存器数组指针
  * @param[in]   regs_count  保持寄存器数量
+ * @param[in]   base_addr   寄存器起始地址（如100表示地址100-199）
  *
  * @return  None
  */
 void modbus_init(modbus_dev_t *dev, uart_desc_t uart, uint8_t slave_addr,
-                 uint16_t *regs, uint16_t regs_count)
+                 uint16_t *regs, uint16_t regs_count, uint16_t base_addr)
 {
   if(dev == NULL || uart == NULL || regs == NULL)
   {
@@ -175,6 +178,7 @@ void modbus_init(modbus_dev_t *dev, uart_desc_t uart, uint8_t slave_addr,
   dev->slave_addr = slave_addr;
   dev->regs = regs;
   dev->regs_count = regs_count;
+  dev->base_addr = base_addr;
 
   // 配置平台接口
   nmbs_platform_conf platform_conf;
@@ -258,4 +262,66 @@ void modbus_set_byte_timeout(modbus_dev_t *dev, int32_t timeout_ms)
   }
 
   nmbs_set_byte_timeout(&dev->nmbs, timeout_ms);
+}
+
+/**
+ * @brief   更新Modbus寄存器数据
+ *
+ * @param[in]   regs  寄存器数组指针
+ *
+ * @return  None
+ *
+ * @note    该函数填充传感器数据到Modbus寄存器，
+ *          地址映射：100-109模拟板，110-119数字板，141传感器类型
+ */
+void modbus_update_regs(uint16_t *regs)
+{
+  if(regs == NULL)
+  {
+    return;
+  }
+
+  // 地址100-109: 模拟板
+  regs[0] = 0;   // 100: CL AD Value
+  regs[1] = 1;   // 101: CH AD Value
+  regs[2] = 2;   // 102: PI AD Value (进气压力AD值)
+  regs[3] = 3;   // 103: PD AD Value (排气压力AD值)
+  regs[4] = 4;   // 104: TI AD Value (进气温度AD值)
+  regs[5] = 5;   // 105: TM AD Value (电机温度AD值)
+  regs[6] = 6;   // 106: VX AD Value
+  regs[7] = 7;   // 107: VY AD Value
+  regs[8] = 8;   // 108: CLA AD Value (电流泄漏AD值)
+  regs[9] = 9;   // 109: VoltY AD Value
+
+  // 地址110-119: 数字板
+  regs[10] = 10;  // 110: CL Value (mA*1000)
+  regs[11] = 11;  // 111: CH Value (mA*1000)
+  regs[12] = 12;  // 112: Intake Pressure (进气压力 Psi*10)
+  regs[13] = 13;  // 113: Discharge Pressure (排气压力 Psi*10)
+  regs[14] = 14;  // 114: Intake Temperature (进气温度 ℃*10)
+  regs[15] = 15;  // 115: Motor Temperature (电机温度 ℃*10)
+  regs[16] = 16;  // 116: X-Vibration (X振动 g*1000)
+  regs[17] = 17;  // 117: Y-Vibration (Y振动 g*1000)
+  regs[18] = 18;  // 118: Current Leakage (电流泄漏 mA*1000)
+  regs[19] = 19;  // 119: Y Point Voltage (Y点电压 V*10)
+
+  // 地址130-139: 扩展数据
+  // regs[20] = 0;  // 120: FW flag (错误状态标志)
+  // regs[30] = 0;  // 130: Discharge Temperature (排气温度 ℃*10)
+  // regs[31] = 0;  // 131: X-Vibration (X振动 g*10)
+  // regs[32] = 0;  // 132: Z-Vibration (Z振动 g*10)
+  // regs[33] = 0;  // 133: Y Point Voltage (Y点电压 V*10)
+  // regs[34] = 0;  // 134: Star Point Voltage (星点电压 V*10)
+  // regs[35] = 0;  // 135: Serial Number HSB (序列号高位)
+  // regs[36] = 0;  // 136: Serial Number LSB (序列号低位)
+  // regs[37] = 0;  // 137: SysSyncCount (系统同步计数)
+  // regs[38] = 0;  // 138: SysDataCount (系统数据计数)
+  // regs[39] = 0;  // 139: SysErrorCount (系统错误计数)
+  // regs[40] = 0;  // 140: System Version (系统版本)
+
+  // 地址141: 传感器类型
+  // 0-NG, 1-XT1, 21-XT150 Type1, 22-XT175 Type1, 
+  // 23-NGG(P.XT150) Type1, 24-CTS Type1, 25-XT150 Type0,
+  // 26-XT175Type0, 27-NGG(P.XT150) Type0, 28-CTS Type0, 50-Zenith, 101-SFD01 ， 102-DGB
+  regs[41] = 41;  // 141: Sensor Type (传感器类型)
 }
