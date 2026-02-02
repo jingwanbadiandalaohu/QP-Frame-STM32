@@ -40,7 +40,7 @@ static void Modbus2Task(void *argument);
 
 
 // // ADC采样打印任务，包含两级滤波
-// static void AdcPrintTask(void *argument);
+static void AdcPrintTask(void *argument);
 
 // Modbus从机设备
 static modbus_dev_t g_modbus_1;
@@ -122,13 +122,13 @@ int main(void)
 
 
   // 创建ADC打印任务（实时优先级）
-  // const osThreadAttr_t adcPrintTask_attributes =
-  // {
-  //   .name = "AdcPrintTask",
-  //   .stack_size = 512 * 4,
-  //   .priority = (osPriority_t)osPriorityRealtime,
-  // };
-  // osThreadNew(AdcPrintTask, NULL, &adcPrintTask_attributes);
+  const osThreadAttr_t adcPrintTask_attributes =
+  {
+    .name = "AdcPrintTask",
+    .stack_size = 512 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
+  };
+  osThreadNew(AdcPrintTask, NULL, &adcPrintTask_attributes);
 
   // 启动RTOS调度器
   osKernelStart();
@@ -200,40 +200,40 @@ static void Modbus2Task(void *argument)
   }
 }
 
-// // 定义ADC滤波器
-// static MAF_Handle_t s_adc_filter_1;
-// static WMAF_Handle_t s_adc_filter_2;
+// 定义ADC滤波器
+static MAF_Handle_t s_adc_filter_1;
+static WMAF_Handle_t s_adc_filter_2;
 
-// static void AdcPrintTask(void *argument)
-// {
-//   uint16_t adcx = 0;          /**< 一级滤波后的ADC值 */
-//   uint16_t adcx2 = 0;         /**< 二级滤波后的ADC值 */
-//   uint16_t *adc_buffer = NULL;
+static void AdcPrintTask(void *argument)
+{
+  uint16_t *adc_buffer = NULL; /**< ADC DMA缓冲区指针 */
+  uint16_t adcx = 0;           /**< 一级滤波后的ADC值 */
+  uint16_t adcx2 = 0;          /**< 二级滤波后的ADC值 */
 
-//   // uint16_t *adc2_buffer = NULL;
+  // uint16_t *adc2_buffer = NULL;
 
-//   (void)argument;
+  (void)argument;
 
-//   while(1)
-//   {
-//      // 获取adc2的值
-//     // adc2_buffer = adc_get_dma_buffer(adc2);
-//     // printf("adc2: %d\n", adc2_buffer[0]);
+  while(1)
+  {
+     // 获取adc2的值
+    // adc2_buffer = adc_get_dma_buffer(adc2);
+    // printf("adc2: %d\n", adc2_buffer[0]);
 
-//     //osDelay(1000);
+    //osDelay(1000);
 
+    // 获取DMA缓冲区数据
+    adc_buffer = adc_get_dma_buffer(adc1);
+    if(adc_buffer == NULL || adc_get_dma_length(adc1) == 0)
+    {
+      continue;
+    }
 
-//     // 获取DMA缓冲区数据
-//     adc_buffer = adc_get_dma_buffer(adc1);
-//     if(adc_buffer == NULL || adc_get_dma_length(adc1) == 0)
-//     {
-//       continue;
-//     }
+    // 两级滤波处理：MAF -> WMAF
+    adcx = MAF_Update(&s_adc_filter_1, adc_buffer[0]);
+    printf("%d, %d\n", adc_buffer[0], adcx);
+    //adcx2 = WMAF_Update(&s_adc_filter_2, adcx);
 
-//     // 两级滤波处理：MAF -> WMAF
-//     adcx = MAF_Update(&s_adc_filter_1, adc_buffer[0]);
-//     adcx2 = WMAF_Update(&s_adc_filter_2, adcx);
-
-//     printf("%d, %d, %d\n", adc_buffer[0], adcx, adcx2);
-//   }
-// }
+    //printf("%d, %d, %d\n", adc_buffer[0], adcx, adcx2);
+  }
+}

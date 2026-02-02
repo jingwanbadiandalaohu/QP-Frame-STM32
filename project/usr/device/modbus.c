@@ -10,6 +10,7 @@
 
 #include "modbus.h"
 #include "cmsis_os2.h"
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -276,6 +277,9 @@ void modbus_set_byte_timeout(modbus_dev_t *dev, int32_t timeout_ms)
  */
 void modbus_update_regs(uint16_t *regs)
 {
+  static uint16_t cnt;
+  cnt++;
+  
   if(regs == NULL)
   {
     return;
@@ -294,16 +298,16 @@ void modbus_update_regs(uint16_t *regs)
   regs[9] = 9;   // 109: VoltY AD Value
 
   // 地址110-119: 数字板
-  regs[10] = 10;  // 110: CL Value (mA*1000)
-  regs[11] = 11;  // 111: CH Value (mA*1000)
-  regs[12] = 12;  // 112: Intake Pressure (进气压力 Psi*10)
-  regs[13] = 13;  // 113: Discharge Pressure (排气压力 Psi*10)
-  regs[14] = 14;  // 114: Intake Temperature (进气温度 ℃*10)
-  regs[15] = 15;  // 115: Motor Temperature (电机温度 ℃*10)
-  regs[16] = 16;  // 116: X-Vibration (X振动 g*1000)
-  regs[17] = 17;  // 117: Y-Vibration (Y振动 g*1000)
-  regs[18] = 18;  // 118: Current Leakage (电流泄漏 mA*1000)
-  regs[19] = 19;  // 119: Y Point Voltage (Y点电压 V*10)
+  regs[10] = 10000+cnt;  // 110: CL Value (mA*1000)
+  regs[11] = 20000;  // 111: CH Value (mA*1000)
+  regs[12] = 65000;  // 112: Intake Pressure (进气压力 Psi*10)
+  regs[13] = 135;  // 113: Discharge Pressure (排气压力 Psi*10)
+  regs[14] = 800;  // 114: Intake Temperature (进气温度 ℃*10)
+  regs[15] = 800;  // 115: Motor Temperature (电机温度 ℃*10)
+  regs[16] = 200;  // 116: X-Vibration (X振动 g*1000)
+  regs[17] = 200;  // 117: Y-Vibration (Y振动 g*1000)
+  regs[18] = 1;  // 118: Current Leakage (电流泄漏 mA*1000)
+  regs[19] = 1000;  // 119: Y Point Voltage (Y点电压 V*10)
 
   // 地址130-139: 扩展数据
   // regs[20] = 0;  // 120: FW flag (错误状态标志)
@@ -323,5 +327,5 @@ void modbus_update_regs(uint16_t *regs)
   // 0-NG, 1-XT1, 21-XT150 Type1, 22-XT175 Type1, 
   // 23-NGG(P.XT150) Type1, 24-CTS Type1, 25-XT150 Type0,
   // 26-XT175Type0, 27-NGG(P.XT150) Type0, 28-CTS Type0, 50-Zenith, 101-SFD01 ， 102-DGB
-  regs[41] = 41;  // 141: Sensor Type (传感器类型)
+  regs[41] = 102;  // 141: Sensor Type (传感器类型)
 }

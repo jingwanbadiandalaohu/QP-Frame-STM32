@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "中文提交信息生成",
+  "description": "在用户提交代码时，提醒 AI 生成中文格式的提交信息",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "请根据当前的 Git 变更生成中文提交信息。格式要求：\n- 使用约定式提交规范（Conventional Commits）\n- 格式：&lt;类型&gt;: &lt;描述&gt;\n- 类型包括：feat(新功能)、fix(修复)、docs(文档)、style(格式)、refactor(重构)、test(测试)、chore(构建/工具)\n- 描述使用中文，简洁明了\n- 如果有多个变更，可以分多行列出"
+  }
+}
