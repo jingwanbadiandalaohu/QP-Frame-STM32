@@ -7,7 +7,7 @@
 *.uvguix.*
 *.emProject
 *.emSession
-.vscode
+#.vscode
 .vs
 *.o
 *.d

@@ -1,0 +1,63 @@
+{
+    // ============================================================================
+    // CMake 配置
+    // ============================================================================
+    // CMake 源代码目录（CMakeLists.txt 所在位置）
+    "cmake.sourceDirectory": "${workspaceFolder}/project/usr",
+    
+    // CMake 构建输出目录
+    "cmake.buildDirectory": "${workspaceFolder}/project/usr/build",
+    
+    // 打开工作区时不自动配置 CMake
+    "cmake.configureOnOpen": false,
+
+    // ============================================================================
+    // 编辑器主题配置
+    // ============================================================================
+    "editor.tokenColorCustomizations": {
+        // 让所有注释整体更暗
+        "comments": "#406840",
+        "textMateRules": [
+            {
+                // C/C++ 普通注释颜色
+                "name": "C/C++ Comments",
+                "scope": [
+                    "comment.line.double-slash.c",
+                    "comment.line.double-slash.cpp",
+                    "comment.block.c",
+                    "comment.block.cpp"
+                ],
+                "settings": {
+                    "foreground": "#4c7a4c"
+                }
+            },
+            {
+                // Doxygen 文档注释颜色
+                "name": "Doxygen Documentation",
+                "scope": [
+                    "comment.block.documentation.c",
+                    "comment.block.documentation.cpp",
+                    "storage.type.class.doxygen.c",
+                    "storage.type.class.doxygen.cpp",
+                    "keyword.other.parameter.direction.in.c",
+                    "keyword.other.parameter.direction.in.cpp",
+                    "keyword.other.parameter.direction.out.c",                    
+                    "variable.parameter.c",
+                    "variable.parameter.cpp"
+                ],
+                "settings": {
+                    "foreground": "#406840"
+                }
+            }
+        ]
+    },
+
+    // ============================================================================
+    // 插件配置
+    // ============================================================================
+    // 禁用 ChatGPT 插件的代码镜头功能
+    "chatgpt.commentCodeLensEnabled": false,
+    
+    // 启用 Kiro Agent 的 MCP 配置
+    "kiroAgent.configureMCP": "Enabled"
+}
