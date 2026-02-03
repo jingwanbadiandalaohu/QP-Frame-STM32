@@ -10,12 +10,11 @@
 
 // c语言标准库
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 // 中间层
 #include "cmsis_os2.h"
-#include "printf.h"
+#include "printf.h"     // 开源printf库
 
 // 组件
 #include "filter.h"
@@ -176,6 +175,7 @@ static void Modbus1Task(void *argument)
   {
     // 处理Modbus请求（阻塞式，内部会等待接收）
     modbus_poll(&g_modbus_1);
+    osDelay(1);
   }
 }
 
@@ -197,6 +197,7 @@ static void Modbus2Task(void *argument)
   {
     // 处理Modbus请求（阻塞式，内部会等待接收）
     modbus_poll(&g_modbus_2);
+    osDelay(1);
   }
 }
 
@@ -231,9 +232,9 @@ static void AdcPrintTask(void *argument)
 
     // 两级滤波处理：MAF -> WMAF
     adcx = MAF_Update(&s_adc_filter_1, adc_buffer[0]);
-    printf("%d, %d\n", adc_buffer[0], adcx);
-    //adcx2 = WMAF_Update(&s_adc_filter_2, adcx);
+    adcx2 = WMAF_Update(&s_adc_filter_2, adcx);
 
-    //printf("%d, %d, %d\n", adc_buffer[0], adcx, adcx2);
+    printf("%d, %d, %d\n", adc_buffer[0], adcx, adcx2);
+    osDelay(1);
   }
 }

@@ -89,7 +89,7 @@ __attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint16_t s_adc2
  */
 static struct uart_desc s_uart2_rs485 = {
   .instance = USART2,
-  .baudrate = 9600
+  .baudrate = 115200
 };
 
 // 调试串口句柄。
