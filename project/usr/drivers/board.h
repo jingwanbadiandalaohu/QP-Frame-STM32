@@ -1,0 +1,70 @@
+/**
+ * @file    board.h
+ * @author  Dylan
+ * @date    2026-01-15
+ * @brief   板级资源声明
+ */
+
+#ifndef BOARD_H
+#define BOARD_H
+
+#include "drv_gpio.h"
+#include "drv_uart.h"
+#include "drv_adc.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief LED1描述符
+ */
+extern gpio_desc_t led1;
+
+/**
+ * @brief 继电器描述符
+ */
+extern gpio_desc_t relay1;
+
+/**
+ * @brief 调试串口描述符
+ */
+extern uart_desc_t uart2_rs485;
+
+/**
+ * @brief 通信串口描述符
+ */
+extern uart_desc_t uart1_rs232;
+
+/**
+ * @brief UART1 DMA接收缓冲区（硬件DMA使用）
+ */
+extern uint8_t Uart1_dma_rx_buf[256];
+
+/**
+ * @brief UART2 DMA接收缓冲区（硬件DMA使用）
+ */
+extern uint8_t Uart2_dma_rx_buf[256];
+
+/**
+ * @brief UART1 环形缓冲区存储空间
+ */
+extern uint8_t Uart1_ringbuf_storage[512];
+
+/**
+ * @brief UART2 环形缓冲区存储空间
+ */
+extern uint8_t Uart2_ringbuf_storage[512];
+
+/**
+ * @brief ADC描述符
+ */
+extern adc_desc_t adc1;
+extern adc_desc_t adc2;
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BOARD_H */

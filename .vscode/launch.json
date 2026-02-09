@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "cwd": "${workspaceRoot}",
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "J-Link STM32H750 Debug",
+            "servertype": "jlink",
+            "device": "STM32H750VB",
+            "interface": "swd",
+            
+            // 替换为您电脑上 JLinkGDBServerCL.exe 的完整绝对路径
+            "serverpath": "C:\\Program Files\\SEGGER\\JLink_V826\\JLinkGDBServerCL.exe", 
+
+            "executable": "./project/usr/build/output/Template.elf",
+            "runToEntryPoint": "main",
+            "toolchainPrefix": "arm-none-eabi"
+        }
+    ]
+}
