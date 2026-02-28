@@ -15,6 +15,47 @@
 #include <string.h>
 #include <stdio.h>
 
+#define MODBUS_DMA_TX_BUF_SIZE    256U
+
+static __attribute__((aligned(32))) __attribute__((section(".ram_d1")))
+uint8_t s_modbus_dma_tx_buf_0[MODBUS_DMA_TX_BUF_SIZE] = {0};
+static __attribute__((aligned(32))) __attribute__((section(".ram_d1")))
+uint8_t s_modbus_dma_tx_buf_1[MODBUS_DMA_TX_BUF_SIZE] = {0};
+static uart_desc_t s_modbus_dma_tx_uart_0 = NULL;
+static uart_desc_t s_modbus_dma_tx_uart_1 = NULL;
+
+/**
+ * @brief   获取指定UART的DMA发送缓冲区
+ *
+ * @param[in]   uart  串口描述符
+ *
+ * @return  DMA发送缓冲区指针，失败返回NULL
+ */
+static uint8_t *modbus_get_dma_tx_buf(uart_desc_t uart)
+{
+  if(uart == NULL)
+  {
+    return NULL;
+  }
+
+  // Step 1: UART0槽位（已绑定或空闲）
+  if(s_modbus_dma_tx_uart_0 == uart || s_modbus_dma_tx_uart_0 == NULL)
+  {
+    s_modbus_dma_tx_uart_0 = uart;
+    return s_modbus_dma_tx_buf_0;       
+  }
+
+  // Step 2: UART1槽位（已绑定或空闲）
+  if(s_modbus_dma_tx_uart_1 == uart || s_modbus_dma_tx_uart_1 == NULL)
+  {
+    s_modbus_dma_tx_uart_1 = uart;
+    return s_modbus_dma_tx_buf_1;
+  }
+
+  // Step 3: 当前只支持2路UART的DMA发送缓冲绑定
+  return NULL;
+}
+
 /**
  * @brief   nanoMODBUS平台读取接口
  *
@@ -91,12 +132,57 @@ static int32_t modbus_platform_write(const uint8_t *buf, uint16_t count,
                                      int32_t byte_timeout_ms, void *arg)
 {
   uart_desc_t uart = (uart_desc_t)arg;
-  uint32_t timeout = (byte_timeout_ms >= 0) ? (uint32_t)byte_timeout_ms : 0xFFFF;
+  uint8_t *tx_dma_buf = NULL;
+  uint32_t start_tick = osKernelGetTickCount();
+  uint32_t timeout = (byte_timeout_ms >= 0) ? (uint32_t)byte_timeout_ms : 0xFFFFFFFFU;
 
-  // NOTE: DMA发送可能无法访问栈区缓冲，先用阻塞发送验证链路
-  if(uart_transmit(uart, (uint8_t*)buf, count, timeout) != 0)
+  if(uart == NULL || buf == NULL)
   {
     return -1;
+  }
+  if(count == 0)
+  {
+    return 0;
+  }
+  if(count > MODBUS_DMA_TX_BUF_SIZE)
+  {
+    return -1;
+  }
+
+  tx_dma_buf = modbus_get_dma_tx_buf(uart);
+  if(tx_dma_buf == NULL)
+  {
+    return -1;
+  }
+
+  // 先等待上一次发送完成，避免DMA启动时UART仍处于BUSY_TX状态。
+  while(uart_is_tx_idle(uart) == false)
+  {
+    if(byte_timeout_ms >= 0 &&
+       (osKernelGetTickCount() - start_tick) >= timeout)
+    {
+      return -1;
+    }
+    osDelay(1);
+  }
+
+  // NOTE: H7工程默认.data/.bss在DTCM，DMA不可直接访问，需拷贝到ram_d1缓冲。
+  memcpy(tx_dma_buf, buf, count); 
+
+  if(uart_transmit_dma(uart, tx_dma_buf, count) != 0)
+  {
+    return -1;
+  }
+
+  // 保持平台写接口的同步语义：DMA启动后等待本帧发送完成再返回。
+  while(uart_is_tx_idle(uart) == false)
+  {
+    if(byte_timeout_ms >= 0 &&
+       (osKernelGetTickCount() - start_tick) >= timeout)
+    {
+      return -1;
+    }
+    osDelay(1);
   }
 
   return (int32_t)count;
