@@ -48,7 +48,7 @@ gpio_desc_t relay1 = &s_relay1;
 #if defined(__GNUC__)
 __attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart1_dma_rx_buf[256] = {0};
 #elif defined(__CC_ARM)
-__align(32) uint8_t Uart1_dma_rx_buf[256] __attribute__((at(0x24000200)));
+__align(32) uint8_t Uart1_dma_rx_buf[256] __attribute__((at(0x24000100)));
 #endif
 
 /**
@@ -59,7 +59,29 @@ __align(32) uint8_t Uart1_dma_rx_buf[256] __attribute__((at(0x24000200)));
 #if defined(__GNUC__)
 __attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart2_dma_rx_buf[256] = {0};
 #elif defined(__CC_ARM)
-__align(32) uint8_t Uart2_dma_rx_buf[256] __attribute__((at(0x24000100)));
+__align(32) uint8_t Uart2_dma_rx_buf[256] __attribute__((at(0x24000200)));
+#endif
+
+/**
+ * @brief UART1 DMA发送缓冲区（硬件DMA使用）
+ * @note  32字节对齐确保cache一致性
+ * @note  放在非DTCM区域，避免DMA访问失败
+ */
+#if defined(__GNUC__)
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart1_dma_tx_buf[256] = {0};
+#elif defined(__CC_ARM)
+__align(32) uint8_t Uart1_dma_tx_buf[256] __attribute__((at(0x24000300)));
+#endif
+
+/**
+ * @brief UART2 DMA发送缓冲区（硬件DMA使用）
+ * @note  32字节对齐确保cache一致性
+ * @note  放在非DTCM区域，避免DMA访问失败
+ */
+#if defined(__GNUC__)
+__attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint8_t Uart2_dma_tx_buf[256] = {0};
+#elif defined(__CC_ARM)
+__align(32) uint8_t Uart2_dma_tx_buf[256] __attribute__((at(0x24000400)));
 #endif
 
 /**
@@ -80,7 +102,7 @@ uint8_t Uart2_ringbuf_storage[512] = {0};
 #if defined(__GNUC__)
 __attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint16_t s_adc1_buffer[64] = {0};
 #elif defined(__CC_ARM)
-__align(32) uint16_t s_adc1_buffer[64] __attribute__((at(0x24000300)));
+__align(32) uint16_t s_adc1_buffer[64] __attribute__((at(0x24000500)));
 #endif
 
 /**
@@ -91,7 +113,7 @@ __align(32) uint16_t s_adc1_buffer[64] __attribute__((at(0x24000300)));
 #if defined(__GNUC__)
 __attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint16_t s_adc2_buffer[64] = {0};
 #elif defined(__CC_ARM)
-__align(32) uint16_t s_adc2_buffer[64] __attribute__((at(0x24000400)));
+__align(32) uint16_t s_adc2_buffer[64] __attribute__((at(0x24000600)));
 #endif
 
 /**

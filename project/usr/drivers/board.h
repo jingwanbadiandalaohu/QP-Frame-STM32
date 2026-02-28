@@ -47,6 +47,16 @@ extern uint8_t Uart1_dma_rx_buf[256];
 extern uint8_t Uart2_dma_rx_buf[256];
 
 /**
+ * @brief UART1 DMA发送缓冲区（硬件DMA使用）
+ */
+extern uint8_t Uart1_dma_tx_buf[256];
+
+/**
+ * @brief UART2 DMA发送缓冲区（硬件DMA使用）
+ */
+extern uint8_t Uart2_dma_tx_buf[256];
+
+/**
  * @brief UART1 环形缓冲区存储空间
  */
 extern uint8_t Uart1_ringbuf_storage[512];
