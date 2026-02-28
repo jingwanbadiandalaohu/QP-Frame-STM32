@@ -128,7 +128,7 @@ void RingBuffer_Init(RingBuffer_t *rb, uint8_t *buffer, uint32_t size)
     return;
   }
 
-  rb->buffer = buffer;
+  rb->buffer = buffer; // 环形缓冲区底层用的数组内存
   rb->size = size;
   rb->head = 0;    // 写指针初始化为0
   rb->tail = 0;    // 读指针初始化为0

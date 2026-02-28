@@ -168,7 +168,7 @@ static void BlinkTask(void *argument)
 
   while(1)
   {
-    modbus_update_regs(g_modbus_regs,&g_data);
+    modbus_update_regs(g_modbus_regs,&g_data);    // 实时更新保持寄存器
     led_toggle(led1);
     osDelay(500);
   }

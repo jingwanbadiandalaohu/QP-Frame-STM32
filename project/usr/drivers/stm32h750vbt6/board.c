@@ -75,14 +75,24 @@ uint8_t Uart2_ringbuf_storage[512] = {0};
 /**
  * @brief ADC1 DMA缓冲区
  * @note  32字节对齐确保cache一致性
+ * @note  GCC使用section属性，Keil AC5使用__at关键字指定地址
  */
+#if defined(__GNUC__)
 __attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint16_t s_adc1_buffer[64] = {0};
+#elif defined(__CC_ARM)
+__align(32) uint16_t s_adc1_buffer[64] __attribute__((at(0x24000300)));
+#endif
 
 /**
  * @brief ADC2 DMA缓冲区
  * @note  32字节对齐确保cache一致性
+ * @note  GCC使用section属性，Keil AC5使用__at关键字指定地址
  */
+#if defined(__GNUC__)
 __attribute__((aligned(32))) __attribute__((section(".ram_d1"))) uint16_t s_adc2_buffer[64] = {0};
+#elif defined(__CC_ARM)
+__align(32) uint16_t s_adc2_buffer[64] __attribute__((at(0x24000400)));
+#endif
 
 /**
  * @brief 调试串口描述符。串口2-RS485

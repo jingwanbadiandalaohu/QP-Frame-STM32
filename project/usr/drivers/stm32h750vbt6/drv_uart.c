@@ -53,7 +53,7 @@ void uart_init(uart_desc_t uart, uint8_t *ringbuf_storage, uint32_t ringbuf_size
     return;
   }
 
-  // 初始化环形缓冲区
+  // 初始化环形缓冲区，ringbuf_storage作为环形缓冲区底层数组
   RingBuffer_Init(&uart->rx_ringbuf, ringbuf_storage, ringbuf_size);
 
   uart->hal_handle.Instance = uart->instance;
@@ -81,7 +81,7 @@ void uart_init(uart_desc_t uart, uint8_t *ringbuf_storage, uint32_t ringbuf_size
     __HAL_UART_ENABLE_IT(&uart->hal_handle, UART_IT_IDLE);
 
     // 启动DMA循环接收
-    HAL_UART_Receive_DMA(&uart->hal_handle, Uart1_dma_rx_buf, sizeof(Uart1_dma_rx_buf));
+    HAL_UART_Receive_DMA(&uart->hal_handle, Uart1_dma_rx_buf, sizeof(Uart1_dma_rx_buf));      // 串口原始数据存入Uart1_dma_rx_buf
   }
   else if(uart->instance == USART2)
   {
@@ -398,21 +398,6 @@ void uart_flush_rx(uart_desc_t uart)
 }
 
 
-/**
- * @brief   printf底层输出函数
- *
- * @param[in]   character  需要输出的字符
- *
- * @return  None
- */
-void _putchar(char character)
-{
-  if(uart2_rs485 != NULL)
-  {
-    HAL_UART_Transmit(&uart2_rs485->hal_handle, (uint8_t *)&character, 1, 0xFFFF);
-  }
-}
-
 
 /**
  * @brief   USART1中断服务函数
@@ -453,7 +438,7 @@ void USART1_IRQHandler(void)
       // 停止DMA接收
       HAL_UART_DMAStop(&uart1_rs232->hal_handle);
 
-      // 重新启动DMA接收
+      // 重新启动DMA接收(清空Uart1_dma_rx_buf，防止数据残留)
       HAL_UART_Receive_DMA(&uart1_rs232->hal_handle, Uart1_dma_rx_buf, sizeof(Uart1_dma_rx_buf));
     }
   }
@@ -495,18 +480,33 @@ void USART2_IRQHandler(void)
 
     if(recv_len > 0 && recv_len <= sizeof(Uart2_dma_rx_buf))
     {
-      // 将数据写入环形缓冲区
+      // 将DMA数据写入环形缓冲区
       RingBuffer_Write(&uart2_rs485->rx_ringbuf, Uart2_dma_rx_buf, recv_len);
 
       // 停止DMA接收
       HAL_UART_DMAStop(&uart2_rs485->hal_handle);
 
-      // 重新启动DMA接收
+      // 重新启动DMA接收(清空Uart2_dma_rx_buf，防止数据残留)
       HAL_UART_Receive_DMA(&uart2_rs485->hal_handle, Uart2_dma_rx_buf, sizeof(Uart2_dma_rx_buf));
     }
   }
 
   // 调用HAL库的中断处理函数
   HAL_UART_IRQHandler(&uart2_rs485->hal_handle);
+}
+
+/**
+ * @brief   printf底层输出函数
+ *
+ * @param[in]   character  需要输出的字符
+ *
+ * @return  None
+ */
+void _putchar(char character)
+{
+  if(uart2_rs485 != NULL)
+  {
+    HAL_UART_Transmit(&uart2_rs485->hal_handle, (uint8_t *)&character, 1, 0xFFFF);
+  }
 }
 

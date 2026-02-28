@@ -8,8 +8,7 @@
  *          演示环形缓冲区在串口接收中的应用。
  */
 #include "app_collect.h"
-#include <stdint.h>
-#include <stdio.h>
+
 
 /**
  * @brief   采集并打印星点电压
@@ -38,6 +37,7 @@ void app_collect_VoltY(Data_t *Data)
   for(i = 0U; i < 5U; i++)
   {
     five_filter_sum += adc_get_average(adc2);
+    osDelay(5);
   }
   adc_filtered = (uint16_t)(five_filter_sum / 5U);
 

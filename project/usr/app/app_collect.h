@@ -10,6 +10,7 @@
 #ifndef APP_COLLECT_H
 #define APP_COLLECT_H
 
+#include "cmsis_os2.h"
 
 #include "stdint.h"
 
@@ -42,3 +43,4 @@ void app_collect_VoltY(Data_t *Data);
 #endif
 
 #endif
+

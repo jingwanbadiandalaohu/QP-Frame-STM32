@@ -388,6 +388,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\usr\app\main.c</FilePath>
             </File>
+            <File>
+              <FileName>app_collect.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\app\app_collect.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
