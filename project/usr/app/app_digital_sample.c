@@ -1,13 +1,10 @@
 /**
- * @file    main.c
+ * @file    app_digital_sample.c
  * @author  Dylan
  * @date    2026-01-15
- * @brief   基于CMSIS-RTOS2的应用入口
- *
- * @details 复用驱动与设备层，实现LED闪烁、串口回显和ADC采样任务。
- *          演示环形缓冲区在串口接收中的应用。
+ * @brief   数字板采样应用层实现
  */
-#include "app_collect.h"
+#include "app_digital_sample.h"
 
 
 /**
@@ -19,7 +16,7 @@
  * @param   None
  * @return  None
  */
-void app_collect_VoltY(Data_t *Data)
+void app_digital_sample_volty(Data_t *Data)
 {
   static uint16_t s_adc_count = 0;
   static uint32_t s_adc_sum = 0U;

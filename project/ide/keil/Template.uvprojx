@@ -389,9 +389,14 @@
               <FilePath>..\..\usr\app\main.c</FilePath>
             </File>
             <File>
-              <FileName>app_collect.c</FileName>
+              <FileName>app_digital_sample.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\usr\app\app_collect.c</FilePath>
+              <FilePath>..\..\usr\app\app_digital_sample.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_modbus_map.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\app\app_modbus_map.c</FilePath>
             </File>
           </Files>
         </Group>

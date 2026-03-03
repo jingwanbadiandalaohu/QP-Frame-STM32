@@ -31,7 +31,8 @@
 #include "board.h"
 
 // 应用层
-#include "app_collect.h"
+#include "app_digital_sample.h"
+#include "app_modbus_map.h"
 
 // 采集任务
 static void AppCollectTask(void *argument);
@@ -54,6 +55,8 @@ static modbus_dev_t g_modbus_1;
 static modbus_dev_t g_modbus_2;
 // Modbus保持寄存器（100个）
 static uint16_t g_modbus_regs[100] = {0};
+// 共享数据互斥锁（保护g_data与g_modbus_regs的一致性）
+osMutexId_t g_modbusDataMutex = NULL;
 
 
 int main(void)
@@ -97,6 +100,18 @@ int main(void)
   
   // 初始化RTOS内核
   osKernelInitialize();
+
+  // 创建共享数据互斥锁：后续所有共享数据读写都必须经过这把锁
+  const osMutexAttr_t modbusDataMutex_attributes =
+  {
+    .name = "ModbusDataMutex",
+  };
+  g_modbusDataMutex = osMutexNew(&modbusDataMutex_attributes);
+  if(g_modbusDataMutex == NULL)
+  {
+    // 锁创建失败时无法保证并发安全，直接进入统一错误处理
+    DRV_System_ErrorHandler();
+  }
 
   // 创建LED闪烁任务
   const osThreadAttr_t blinkTask_attributes =
@@ -168,7 +183,12 @@ static void BlinkTask(void *argument)
 
   while(1)
   {
-    modbus_update_regs(g_modbus_regs,&g_data);    // 实时更新保持寄存器
+    // 在映射更新窗口内加锁，避免与采集任务/Modbus读回调并发访问共享数据
+    if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
+    {
+      app_modbus_update_regs(g_modbus_regs, &g_data);  // 实时更新保持寄存器
+      osMutexRelease(g_modbusDataMutex);
+    }
     led_toggle(led1);
     osDelay(500);
   }
@@ -187,7 +207,17 @@ void AppCollectTask(void *argument)
 
   while(1)
   {
-    app_collect_VoltY(&g_data); //采集200次后计算平均值
+    // 先在本地变量完成采集计算，避免把函数内部延时包含在临界区内
+    Data_t local_data = g_data;
+    app_digital_sample_volty(&local_data); //采集200次后计算平均值
+
+    // 仅在最终提交共享数据时短时间持锁，降低对Modbus轮询实时性的影响
+    if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
+    {
+      g_data = local_data;
+      osMutexRelease(g_modbusDataMutex);
+    }
+
     osDelay(30);
   }
 }

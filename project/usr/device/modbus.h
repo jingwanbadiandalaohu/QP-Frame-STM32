@@ -13,7 +13,6 @@
 #define MODBUS_H
 
 #include <stdint.h>
-#include "app_collect.h"
 #include "nanomodbus.h"
 #include "drv_uart.h"
 
@@ -79,18 +78,6 @@ void modbus_set_read_timeout(modbus_dev_t *dev, int32_t timeout_ms);
  * @return  None
  */
 void modbus_set_byte_timeout(modbus_dev_t *dev, int32_t timeout_ms);
-
-/**
- * @brief   更新Modbus寄存器数据
- *
- * @param[in]   regs  寄存器数组指针 Data：传感器数据结构体指针
- *
- * @return  None
- *
- * @note    该函数填充传感器数据到Modbus寄存器，
- *          地址映射：100-109模拟板，110-119数字板，141传感器类型
- */
-void modbus_update_regs(uint16_t *regs, Data_t *Data);
 
 #ifdef __cplusplus
 }

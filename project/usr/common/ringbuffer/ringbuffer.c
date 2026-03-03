@@ -111,7 +111,48 @@
  */
 
 #include "ringbuffer.h"
-#include <string.h>
+#include "stm32h7xx.h"
+
+/**
+ * @brief   进入环形缓冲区临界区
+ *
+ * @details 仅在任务上下文关中断，避免ISR与任务并发访问head/tail/isFull。
+ *          若当前已在中断上下文，不重复修改PRIMASK。
+ *
+ * @return  进入前的PRIMASK值
+ */
+static uint32_t RingBuffer_EnterCritical(void)
+{
+  // Step 1: 记录进入临界区前的中断屏蔽状态，退出时按原样恢复
+  uint32_t primask = __get_PRIMASK();
+
+  // Step 2: 仅在任务上下文关中断，避免被UART ISR打断索引更新
+  // IPSR == 0 表示当前不在任何中断服务函数中
+  if(__get_IPSR() == 0U)
+  {
+    __disable_irq();    //关闭“可屏蔽中断（IRQ）”，NMI/HardFault 仍然不会被关掉。
+  }
+
+  // Step 3: 返回旧PRIMASK给退出函数使用
+  return primask;
+}
+
+/**
+ * @brief   退出环形缓冲区临界区
+ *
+ * @param[in]   primask  进入前的PRIMASK值
+ *
+ * @return  None
+ */
+static void RingBuffer_ExitCritical(uint32_t primask)
+{
+  // Step 1: 仅在任务上下文恢复PRIMASK，ISR上下文不重复操作中断状态
+  if(__get_IPSR() == 0U)
+  {
+    // Step 2: 恢复进入前的中断屏蔽状态，避免影响外层调用者
+    __set_PRIMASK(primask);
+  }
+}
 
 /**
  * @brief   初始化环形缓冲区
@@ -170,10 +211,14 @@ void RingBuffer_Reset(RingBuffer_t *rb)
  */
 bool RingBuffer_WriteByte(RingBuffer_t *rb, uint8_t data)
 {
+  uint32_t primask = 0U;
+
   if(rb == NULL)
   {
     return false;
   }
+
+  primask = RingBuffer_EnterCritical();
 
   // 如果满了，自动覆盖最旧的数据
   if(rb->isFull)
@@ -193,6 +238,7 @@ bool RingBuffer_WriteByte(RingBuffer_t *rb, uint8_t data)
     rb->isFull = true;
   }
 
+  RingBuffer_ExitCritical(primask);
   return true;
 }
 
@@ -209,14 +255,19 @@ bool RingBuffer_WriteByte(RingBuffer_t *rb, uint8_t data)
  */
 bool RingBuffer_ReadByte(RingBuffer_t *rb, uint8_t *data)
 {
+  uint32_t primask = 0U;
+
   if(rb == NULL || data == NULL)
   {
     return false;
   }
 
+  primask = RingBuffer_EnterCritical();
+
   // 检查是否为空
   if(RingBuffer_IsEmpty(rb))
   {
+    RingBuffer_ExitCritical(primask);
     return false;
   }
 
@@ -229,6 +280,7 @@ bool RingBuffer_ReadByte(RingBuffer_t *rb, uint8_t *data)
   // 读取后必然不满
   rb->isFull = false;
 
+  RingBuffer_ExitCritical(primask);
   return true;
 }
 
@@ -254,25 +306,12 @@ uint32_t RingBuffer_Write(RingBuffer_t *rb, const uint8_t *data, uint32_t len)
     return 0;
   }
 
-  // 逐字节写入
+  // 逐字节写入，每个字节使用短临界区保护索引一致性
   for(uint32_t i = 0; i < len; i++)
   {
-    // 如果满了，自动覆盖最旧的数据
-    if(rb->isFull)
+    if(RingBuffer_WriteByte(rb, data[i]) == false)
     {
-      rb->tail = (rb->tail + 1) % rb->size;  // 移动读指针，丢弃最旧数据
-    }
-
-    // 写入数据到head位置
-    rb->buffer[rb->head] = data[i];
-    
-    // head指针前进（模运算实现环形回绕）
-    rb->head = (rb->head + 1) % rb->size;
-
-    // 检查是否写满：head追上tail表示满
-    if(rb->head == rb->tail)
-    {
-      rb->isFull = true;
+      return i;
     }
   }
 
@@ -296,25 +335,23 @@ uint32_t RingBuffer_Write(RingBuffer_t *rb, const uint8_t *data, uint32_t len)
  */
 uint32_t RingBuffer_Read(RingBuffer_t *rb, uint8_t *data, uint32_t len)
 {
-  if(rb == NULL || data == NULL || len == 0)
+  uint32_t readLen = 0U;
+
+  if(rb == NULL || data == NULL || len == 0U)
   {
     return 0;
   }
 
-  // 计算实际可读取的字节数
-  uint32_t available = RingBuffer_GetAvailable(rb);
-  uint32_t readLen = (len > available) ? available : len;
-
-  // 逐字节读取
-  for(uint32_t i = 0; i < readLen; i++)
+  // 逐字节读取，每个字节使用短临界区保护索引一致性
+  for(uint32_t i = 0U; i < len; i++)
   {
-    data[i] = rb->buffer[rb->tail];
-    rb->tail = (rb->tail + 1) % rb->size;  // tail指针前进
+    if(RingBuffer_ReadByte(rb, &data[i]) == false)
+    {
+      break;
+    }
+
+    readLen++;
   }
-
-  // 读取后必然不满
-  rb->isFull = false;
-
   return readLen;  // 返回实际读取的字节数
 }
 
@@ -372,27 +409,34 @@ uint32_t RingBuffer_Peek(const RingBuffer_t *rb, uint8_t *data, uint32_t len)
  */
 uint32_t RingBuffer_GetAvailable(const RingBuffer_t *rb)
 {
+  uint32_t available = 0U;
+  uint32_t primask = 0U;
+
   if(rb == NULL)
   {
     return 0;
   }
 
+  primask = RingBuffer_EnterCritical();
+
   // 情况1：缓冲区已满
   if(rb->isFull)
   {
-    return rb->size;
+    available = rb->size;
   }
-
-  // 情况2：head在tail前面（线性区域）
-  if(rb->head >= rb->tail)
+  else if(rb->head >= rb->tail)
   {
-    return rb->head - rb->tail;
+    // 情况2：head在tail前面（线性区域）
+    available = rb->head - rb->tail;
   }
-  // 情况3：head在tail后面（环形回绕）
   else
   {
-    return rb->size - rb->tail + rb->head;
+    // 情况3：head在tail后面（环形回绕）
+    available = rb->size - rb->tail + rb->head;
   }
+
+  RingBuffer_ExitCritical(primask);
+  return available;
 }
 
 /**
@@ -418,12 +462,19 @@ uint32_t RingBuffer_GetFree(const RingBuffer_t *rb)
  */
 bool RingBuffer_IsEmpty(const RingBuffer_t *rb)
 {
+  bool isEmpty = true;
+  uint32_t primask = 0U;
+
   if(rb == NULL)
   {
     return true;
   }
 
-  return (!rb->isFull && (rb->head == rb->tail));
+  primask = RingBuffer_EnterCritical();
+  isEmpty = (!rb->isFull && (rb->head == rb->tail));
+  RingBuffer_ExitCritical(primask);
+
+  return isEmpty;
 }
 
 /**
@@ -431,10 +482,17 @@ bool RingBuffer_IsEmpty(const RingBuffer_t *rb)
  */
 bool RingBuffer_IsFull(const RingBuffer_t *rb)
 {
+  bool isFull = false;
+  uint32_t primask = 0U;
+
   if(rb == NULL)
   {
     return false;
   }
 
-  return rb->isFull;
+  primask = RingBuffer_EnterCritical();
+  isFull = rb->isFull;
+  RingBuffer_ExitCritical(primask);
+
+  return isFull;
 }

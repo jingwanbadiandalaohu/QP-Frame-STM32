@@ -47,7 +47,8 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../mcu/stm32h750vbt6 ${CMAKE_CURRE
 # ============================================================================
 set(PRO_SRC
     app/main.c                                                                      #应用入口
-    app/app_collect.c                                                               #应用数据采集模块
+    app/app_digital_sample.c                                                        #数字板数据采样模块
+    app/app_modbus_map.c                                                            #应用层Modbus寄存器映射
 
     core/${PLATFORM}/stm32h7xx_it.c                                                 #中断服务函数
     core/${PLATFORM}/stm32h7xx_hal_msp.c                                            #HAL MSP初始化
@@ -56,7 +57,7 @@ set(PRO_SRC
 
     drivers/${PLATFORM}/drv_gpio.c                                                  #GPIO驱动
     drivers/${PLATFORM}/drv_uart.c                                                  #UART驱动
-    drivers/${PLATFORM}/drv_adc.c                                                   #ADC驱动
+    drivers/${PLATFORM}/drv_adc.c                                                 #ADC驱动
     drivers/${PLATFORM}/drv_system.c                                                #系统驱动
     drivers/${PLATFORM}/board.c                                                     #板级资源定义
 
