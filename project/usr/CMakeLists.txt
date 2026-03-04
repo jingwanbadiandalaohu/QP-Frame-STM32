@@ -47,6 +47,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../mcu/stm32h750vbt6 ${CMAKE_CURRE
 # ============================================================================
 set(PRO_SRC
     app/main.c                                                                      #应用入口
+    app/app_sysview.c                                                               #SystemView配置
     app/app_digital_sample.c                                                        #数字板数据采样模块
     app/app_modbus_map.c                                                            #应用层Modbus寄存器映射
 
@@ -85,6 +86,10 @@ set(MIDDLEWARE_SRC
 
     ../Middlewares/Third_Party/Printf/printf.c                                      #Printf库
     ../Middlewares/Third_Party/nanoMODBUS/nanomodbus.c                              #nanoMODBUS库
+    ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT.c                       #SEGGER RTT实现
+    ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT_ASM_ARMv7M.S            #SEGGER RTT汇编加速
+    ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_SYSVIEW.c                   #SEGGER SystemView核心
+    ../Middlewares/Third_Party/SystemView/Sample/FreeRTOSV10/SEGGER_SYSVIEW_FreeRTOS.c #FreeRTOS跟踪适配
 
 )
 
@@ -113,6 +118,9 @@ target_include_directories(${__PROJ_NAME__} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1 #FreeRTOS移植头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Include #CMSIS-RTOS2头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS_5/CMSIS/RTOS2/Include #CMSIS RTOS2头文件
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/SystemView/SEGGER          #SystemView核心头文件
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/SystemView/Config          #SystemView配置头文件
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/SystemView/Sample/FreeRTOSV10 #FreeRTOS跟踪头文件
 
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/Printf                     #Printf库头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/nanoMODBUS                 #nanoMODBUS头文件

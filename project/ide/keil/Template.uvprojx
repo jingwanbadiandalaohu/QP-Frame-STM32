@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32H750xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Inc;..\..\..\mcu\stm32h750vbt6\CMSIS\Include;..\..\..\mcu\stm32h750vbt6\CMSIS\Device\ST\STM32H7xx\Include;..\..\Middlewares\Third_Party\FreeRTOS\include;..\..\Middlewares\Third_Party\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\..\Middlewares\Third_Party\CMSIS-FreeRTOS\CMSIS\RTOS2\FreeRTOS\Include;..\..\Middlewares\Third_Party\CMSIS_5\CMSIS\RTOS2\Include;..\..\Middlewares\Third_Party\Printf;..\..\Middlewares\Third_Party\nanoMODBUS;..\..\usr\core\stm32h750vbt6;..\..\usr\app;..\..\usr\inc\stm32h750vbt6;..\..\usr\drivers\stm32h750vbt6;..\..\usr\device;..\..\usr\drivers;..\..\usr\common\filter;..\..\usr\common\ringbuffer</IncludePath>
+              <IncludePath>..\..\..\mcu\stm32h750vbt6\STM32H7xx_HAL_Driver\Inc;..\..\..\mcu\stm32h750vbt6\CMSIS\Include;..\..\..\mcu\stm32h750vbt6\CMSIS\Device\ST\STM32H7xx\Include;..\..\Middlewares\Third_Party\FreeRTOS\include;..\..\Middlewares\Third_Party\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\..\Middlewares\Third_Party\CMSIS-FreeRTOS\CMSIS\RTOS2\FreeRTOS\Include;..\..\Middlewares\Third_Party\CMSIS_5\CMSIS\RTOS2\Include;..\..\Middlewares\Third_Party\Printf;..\..\Middlewares\Third_Party\nanoMODBUS;..\..\usr\core\stm32h750vbt6;..\..\usr\app;..\..\usr\inc\stm32h750vbt6;..\..\usr\drivers\stm32h750vbt6;..\..\usr\device;..\..\usr\drivers;..\..\usr\common\filter;..\..\usr\common\ringbuffer;..\..\Middlewares\Third_Party\SystemView\SEGGER;..\..\Middlewares\Third_Party\SystemView\Sample\FreeRTOSV10.4;..\..\Middlewares\Third_Party\SystemView\Config</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -397,6 +397,11 @@
               <FileName>app_modbus_map.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\usr\app\app_modbus_map.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_sysview.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\usr\app\app_sysview.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -617,6 +622,31 @@
               <FileName>nanomodbus.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\Middlewares\Third_Party\nanoMODBUS\nanomodbus.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Middlewares\Third_Party\SystemView</GroupName>
+          <Files>
+            <File>
+              <FileName>SEGGER_RTT.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Middlewares\Third_Party\SystemView\SEGGER\SEGGER_RTT.c</FilePath>
+            </File>
+            <File>
+              <FileName>SEGGER_RTT_printf.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Middlewares\Third_Party\SystemView\SEGGER\SEGGER_RTT_printf.c</FilePath>
+            </File>
+            <File>
+              <FileName>SEGGER_SYSVIEW.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Middlewares\Third_Party\SystemView\SEGGER\SEGGER_SYSVIEW.c</FilePath>
+            </File>
+            <File>
+              <FileName>SEGGER_SYSVIEW_FreeRTOS.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Middlewares\Third_Party\SystemView\Sample\FreeRTOSV10.4\SEGGER_SYSVIEW_FreeRTOS.c</FilePath>
             </File>
           </Files>
         </Group>

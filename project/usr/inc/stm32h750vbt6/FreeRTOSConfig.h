@@ -145,4 +145,59 @@ standard names. */
  */
 /* #define xPortSysTickHandler SysTick_Handler */
 
+#if (configUSE_TRACE_FACILITY == 1)
+  #include "SEGGER_SYSVIEW_FreeRTOS.h"
+
+  /*
+   * FreeRTOS V10.3.1 的任务通知 trace 宏会传入索引参数。
+   * SEGGER FreeRTOSV10 适配头中对应宏为无参，这里做兼容封装。
+   */
+  #undef traceTASK_NOTIFY_TAKE
+  #define traceTASK_NOTIFY_TAKE(...)                                            \
+    SEGGER_SYSVIEW_RecordU32x2(                                                 \
+      apiID_OFFSET + apiID_ULTASKNOTIFYTAKE,                                    \
+      xClearCountOnExit,                                                         \
+      xTicksToWait                                                               \
+    )
+
+  #undef traceTASK_NOTIFY_WAIT
+  #define traceTASK_NOTIFY_WAIT(...)                                            \
+    SEGGER_SYSVIEW_RecordU32x4(                                                 \
+      apiID_OFFSET + apiID_XTASKNOTIFYWAIT,                                     \
+      ulBitsToClearOnEntry,                                                      \
+      ulBitsToClearOnExit,                                                       \
+      (U32)pulNotificationValue,                                                 \
+      xTicksToWait                                                               \
+    )
+
+  #undef traceTASK_NOTIFY
+  #define traceTASK_NOTIFY(...)                                                 \
+    SEGGER_SYSVIEW_RecordU32x4(                                                 \
+      apiID_OFFSET + apiID_XTASKGENERICNOTIFY,                                  \
+      SEGGER_SYSVIEW_ShrinkId((U32)pxTCB),                                      \
+      ulValue,                                                                   \
+      eAction,                                                                   \
+      (U32)pulPreviousNotificationValue                                          \
+    )
+
+  #undef traceTASK_NOTIFY_FROM_ISR
+  #define traceTASK_NOTIFY_FROM_ISR(...)                                        \
+    SEGGER_SYSVIEW_RecordU32x5(                                                 \
+      apiID_OFFSET + apiID_XTASKGENERICNOTIFYFROMISR,                           \
+      SEGGER_SYSVIEW_ShrinkId((U32)pxTCB),                                      \
+      ulValue,                                                                   \
+      eAction,                                                                   \
+      (U32)pulPreviousNotificationValue,                                         \
+      (U32)pxHigherPriorityTaskWoken                                             \
+    )
+
+  #undef traceTASK_NOTIFY_GIVE_FROM_ISR
+  #define traceTASK_NOTIFY_GIVE_FROM_ISR(...)                                   \
+    SEGGER_SYSVIEW_RecordU32x2(                                                 \
+      apiID_OFFSET + apiID_VTASKNOTIFYGIVEFROMISR,                              \
+      SEGGER_SYSVIEW_ShrinkId((U32)pxTCB),                                      \
+      (U32)pxHigherPriorityTaskWoken                                             \
+    )
+#endif
+
 #endif /* FREERTOS_CONFIG_H */

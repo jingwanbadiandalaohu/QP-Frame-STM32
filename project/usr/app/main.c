@@ -15,6 +15,7 @@
 // 中间层
 #include "cmsis_os2.h"
 #include "printf.h"     // 开源printf库
+#include "SEGGER_SYSVIEW.h"
 
 // 组件
 #include "filter.h"
@@ -100,6 +101,10 @@ int main(void)
   
   // 初始化RTOS内核
   osKernelInitialize();
+
+  // 初始化SystemView并开启跟踪，便于分析任务切换和中断时序
+  SEGGER_SYSVIEW_Conf();
+  SEGGER_SYSVIEW_Start();
 
   // 创建共享数据互斥锁：后续所有共享数据读写都必须经过这把锁
   const osMutexAttr_t modbusDataMutex_attributes =
