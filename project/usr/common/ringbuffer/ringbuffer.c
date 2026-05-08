@@ -111,7 +111,7 @@
  */
 
 #include "ringbuffer.h"
-#include "stm32h7xx.h"
+#include "cmsis_gcc.h"  // CMSIS内核函数：__get_PRIMASK, __disable_irq等
 
 /**
  * @brief   进入环形缓冲区临界区

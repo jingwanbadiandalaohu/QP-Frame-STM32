@@ -3,14 +3,12 @@
 # ============================================================================
 # 项目名称
 set(__PROJ_NAME__ "Template" CACHE STRING "Project name")
-# 芯片型号
-set(__CHIP_TYPE__ "STM32H750vbt6" CACHE STRING "Chip type")
 # 工具链类型
 set(__TOOLCHAIN__ "ARMGCC" CACHE STRING "Toolchain type")
 
 # 目标平台
-set(PLATFORM "stm32h750vbt6" CACHE STRING "Target platform")
-set_property(CACHE PLATFORM PROPERTY STRINGS "stm32h750vbt6")
+set(PLATFORM "stm32f103rct6" CACHE STRING "Target platform")
+set_property(CACHE PLATFORM PROPERTY STRINGS "stm32h750vbt6" "stm32f103rct6")
 
 # 输出路径配置
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output)
@@ -19,12 +17,31 @@ set(BIN_FILE ${EXECUTABLE_OUTPUT_PATH}/${__PROJ_NAME__}.bin)
 set(MAP_FILE ${EXECUTABLE_OUTPUT_PATH}/${__PROJ_NAME__}.map)
 
 # ============================================================================
+# 平台相关配置
+# ============================================================================
+if(PLATFORM STREQUAL "stm32f103rct6")
+    set(__CHIP_TYPE__ "STM32F103RCT6")
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/../ide/gcc/scripts/cmake/armgcc_cm3.cmake")
+    set(MCU_LIBRARY "stm32f1xx_library")
+    set(MCU_PATH "stm32f103rct6")
+    set(MCU_SERIES "f1")
+    set(FREERTOS_PORT "ARM_CM3")
+elseif(PLATFORM STREQUAL "stm32h750vbt6")
+    set(__CHIP_TYPE__ "STM32H750VBT6")
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/../ide/gcc/scripts/cmake/armgcc_cm7.cmake")
+    set(MCU_LIBRARY "stm32h7xx_library")
+    set(MCU_PATH "stm32h750vbt6")
+    set(MCU_SERIES "h7")
+    set(FREERTOS_PORT "ARM_CM7/r0p1")
+else()
+    message(FATAL_ERROR "Unsupported platform: ${PLATFORM}")
+endif()
+
+# ============================================================================
 # CMake基础配置
 # ============================================================================
 cmake_minimum_required(VERSION 3.20)
 
-# 工具链文件路径
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/../ide/gcc/scripts/cmake/armgcc_cm7.cmake")
 # 导出编译命令（用于IDE代码补全）
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -40,7 +57,7 @@ endif()
 # ============================================================================
 # 添加STM32 HAL库子目录
 # ============================================================================
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../mcu/stm32h750vbt6 ${CMAKE_CURRENT_BINARY_DIR}/stm32h7xx_library)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../mcu/${MCU_PATH} ${CMAKE_CURRENT_BINARY_DIR}/${MCU_LIBRARY})
 
 # ============================================================================
 # 项目源文件
@@ -51,14 +68,10 @@ set(PRO_SRC
     app/app_digital_sample.c                                                        #数字板数据采样模块
     app/app_modbus_map.c                                                            #应用层Modbus寄存器映射
 
-    core/${PLATFORM}/stm32h7xx_it.c                                                 #中断服务函数
-    core/${PLATFORM}/stm32h7xx_hal_msp.c                                            #HAL MSP初始化
-    core/${PLATFORM}/stm32h7xx_hal_timebase_tim.c                                   #HAL时基定时器
+    core/${PLATFORM}/stm32${MCU_SERIES}xx_it.c                                      #中断服务函数
+    core/${PLATFORM}/stm32${MCU_SERIES}xx_hal_msp.c                                 #HAL MSP初始化
     core/${PLATFORM}/syscalls.c                                                     #系统调用
 
-    drivers/${PLATFORM}/drv_gpio.c                                                  #GPIO驱动
-    drivers/${PLATFORM}/drv_uart.c                                                  #UART驱动
-    drivers/${PLATFORM}/drv_adc.c                                                 #ADC驱动
     drivers/${PLATFORM}/drv_system.c                                                #系统驱动
     drivers/${PLATFORM}/board.c                                                     #板级资源定义
 
@@ -70,6 +83,16 @@ set(PRO_SRC
     common/ringbuffer/ringbuffer.c                                                  #环形缓冲区
 )
 
+# H750 特有的源文件
+if(PLATFORM STREQUAL "stm32h750vbt6")
+    list(APPEND PRO_SRC
+        core/${PLATFORM}/stm32h7xx_hal_timebase_tim.c                               #HAL时基定时器
+        drivers/${PLATFORM}/drv_gpio.c                                              #GPIO驱动
+        drivers/${PLATFORM}/drv_uart.c                                              #UART驱动
+        drivers/${PLATFORM}/drv_adc.c                                               #ADC驱动
+    )
+endif()
+
 # ============================================================================
 # 中间件源文件
 # ============================================================================
@@ -80,18 +103,24 @@ set(MIDDLEWARE_SRC
     ../Middlewares/Third_Party/FreeRTOS/timers.c                                    #定时器代码
     ../Middlewares/Third_Party/FreeRTOS/event_groups.c                              #事件组代码
     ../Middlewares/Third_Party/FreeRTOS/stream_buffer.c                             #流缓冲区代码
-    ../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1/port.c            #FreeRTOS针对Cortex-M7的移植文件
+    ../Middlewares/Third_Party/FreeRTOS/portable/GCC/${FREERTOS_PORT}/port.c       #FreeRTOS移植文件
     ../Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c                   #FreeRTOS内存管理方案
     ../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source/cmsis_os2.c #CMSIS-RTOS2接口文件
 
     ../Middlewares/Third_Party/Printf/printf.c                                      #Printf库
     ../Middlewares/Third_Party/nanoMODBUS/nanomodbus.c                              #nanoMODBUS库
-    ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT.c                       #SEGGER RTT实现
-    ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT_ASM_ARMv7M.S            #SEGGER RTT汇编加速
-    ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_SYSVIEW.c                   #SEGGER SystemView核心
-    ../Middlewares/Third_Party/SystemView/Sample/FreeRTOSV10/SEGGER_SYSVIEW_FreeRTOS.c #FreeRTOS跟踪适配
-
+    # TODO: F103 暂时禁用 SystemView（缺少汇编加速函数）
+    # ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT.c                       #SEGGER RTT实现
+    # ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_SYSVIEW.c                   #SEGGER SystemView核心
+    # ../Middlewares/Third_Party/SystemView/Sample/FreeRTOSV10/SEGGER_SYSVIEW_FreeRTOS.c #FreeRTOS跟踪适配
 )
+
+# H750 特有的中间件（汇编加速）
+if(PLATFORM STREQUAL "stm32h750vbt6")
+    list(APPEND MIDDLEWARE_SRC
+        ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT_ASM_ARMv7M.S        #SEGGER RTT汇编加速
+    )
+endif()
 
 # ============================================================================
 # 创建可执行文件目标
@@ -111,17 +140,15 @@ target_include_directories(${__PROJ_NAME__} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/app                                                   #应用层头文件
     ${CMAKE_CURRENT_LIST_DIR}/core                                                  #核心层头文件
     ${CMAKE_CURRENT_LIST_DIR}/core/${PLATFORM}                                      #平台核心头文件
-
-
     ${CMAKE_CURRENT_LIST_DIR}/inc/${PLATFORM}                                       #平台配置头文件
+
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/FreeRTOS/include          #FreeRTOS头文件
-    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM7/r0p1 #FreeRTOS移植头文件
+    ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/FreeRTOS/portable/GCC/${FREERTOS_PORT} #FreeRTOS移植头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Include #CMSIS-RTOS2头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/CMSIS_5/CMSIS/RTOS2/Include #CMSIS RTOS2头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/SystemView/SEGGER          #SystemView核心头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/SystemView/Config          #SystemView配置头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/SystemView/Sample/FreeRTOSV10 #FreeRTOS跟踪头文件
-
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/Printf                     #Printf库头文件
     ${CMAKE_CURRENT_LIST_DIR}/../Middlewares/Third_Party/nanoMODBUS                 #nanoMODBUS头文件
 )
@@ -129,7 +156,7 @@ target_include_directories(${__PROJ_NAME__} PRIVATE
 # ============================================================================
 # 链接库
 # ============================================================================
-target_link_libraries(${__PROJ_NAME__} PRIVATE "stm32h7xx_library")
+target_link_libraries(${__PROJ_NAME__} PRIVATE "${MCU_LIBRARY}")
 
 # ============================================================================
 # 链接选项

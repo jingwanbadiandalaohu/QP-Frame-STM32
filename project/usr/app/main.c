@@ -13,58 +13,63 @@
 #include <string.h>
 
 // 中间层
-#include "SEGGER_SYSVIEW.h"
+// #include "SEGGER_SYSVIEW.h" // TODO: F103 暂时禁用 SystemView
 #include "cmsis_os2.h"
-#include "printf.h" // 开源printf库
+// #include "printf.h" // 开源printf库（暂未使用）
 
 // 组件
-#include "filter.h"
+// #include "filter.h" // 滤波器（暂未使用）
 
 // 设备层
-#include "led.h"
-#include "modbus.h"
-#include "relay.h"
+// #include "led.h"    // TODO: 待驱动实现后启用
+// #include "modbus.h" // TODO: 待驱动实现后启用
+// #include "relay.h"  // TODO: 待驱动实现后启用
 
 // 驱动层
-#include "board.h"
-#include "drv_adc.h"
+// #include "board.h"     // TODO: 待驱动实现后启用
+// #include "drv_adc.h"   // TODO: 待驱动实现后启用
 #include "drv_system.h"
-#include "drv_uart.h"
+// #include "drv_uart.h"  // TODO: 待驱动实现后启用
 
 // 应用层
-#include "app_digital_sample.h"
-#include "app_modbus_map.h"
+// #include "app_digital_sample.h" // TODO: 待驱动实现后启用
+// #include "app_modbus_map.h"     // TODO: 待驱动实现后启用
 
-// 采集任务
-static void AppCollectTask(void *argument);
+// 采集任务（暂时注释，待驱动实现后启用）
+// static void AppCollectTask(void *argument);
 
-// LED闪烁任务
-static void BlinkTask(void *argument);
-// Modbus从机任务
-static void Modbus1Task(void *argument);
-static void Modbus2Task(void *argument);
+// LED闪烁任务（暂时注释，待驱动实现后启用）
+// static void BlinkTask(void *argument);
 
-// // ADC采样打印任务，包含两级滤波
-// static void AdcPrintTask(void *argument);
+// Modbus从机任务（暂时注释，待驱动实现后启用）
+// static void Modbus1Task(void *argument);
+// static void Modbus2Task(void *argument);
 
-// 采样参数
-static Data_t g_data;
-// Modbus从机设备
-static modbus_dev_t g_modbus_1;
-static modbus_dev_t g_modbus_2;
-// Modbus保持寄存器（100个）
-static uint16_t g_modbus_regs[100]= {0};
-// 共享数据互斥锁（保护g_data与g_modbus_regs的一致性）
-osMutexId_t g_modbusDataMutex= NULL;
+// 采样参数（暂时注释，待驱动实现后启用）
+// static Data_t g_data;
+
+// Modbus从机设备（暂时注释，待驱动实现后启用）
+// static modbus_dev_t g_modbus_1;
+// static modbus_dev_t g_modbus_2;
+
+// Modbus保持寄存器（100个）（暂时注释，待驱动实现后启用）
+// static uint16_t g_modbus_regs[100]= {0};
+
+// 共享数据互斥锁（保护g_data与g_modbus_regs的一致性）（暂时注释，待驱动实现后启用）
+// osMutexId_t g_modbusDataMutex= NULL;
 
 int main(void)
 {
+  // NOTE: F103 暂时注释掉缺失的驱动调用，待驱动层实现后再启用
+
   // 在系统初始化之前清零 AXI SRAM(D1)
-  memset((void *)0x24000000, 0, 512 * 1024); // 清零整个 AXI SRAM (512KB)
+  // NOTE: F103 没有 AXI SRAM，注释掉
+  // memset((void *)0x24000000, 0, 512 * 1024);
 
   // 清缓冲区
-  memset(Uart1_dma_rx_buf, 0, sizeof(Uart1_dma_rx_buf));
-  memset(Uart2_dma_rx_buf, 0, sizeof(Uart2_dma_rx_buf));
+  // TODO: 待 board.c 定义 DMA 缓冲区后启用
+  // memset(Uart1_dma_rx_buf, 0, sizeof(Uart1_dma_rx_buf));
+  // memset(Uart2_dma_rx_buf, 0, sizeof(Uart2_dma_rx_buf));
 
   // 系统初始化
   if(DRV_System_Init() != 0)
@@ -73,80 +78,83 @@ int main(void)
   }
 
   // 外设初始化
-  led_init(led1);
-  relay_init(relay1);
-  relay_on(relay1);
+  // TODO: 待实现 drv_gpio.c 后启用
+  // led_init(led1);
+  // relay_init(relay1);
+  // relay_on(relay1);
 
   // 初始化串口 Uart1/2_ringbuf_storage用于环形缓冲区存储
-  uart_init(uart1_rs232, Uart1_ringbuf_storage, sizeof(Uart1_ringbuf_storage));
-  uart_init(uart2_rs485, Uart2_ringbuf_storage, sizeof(Uart2_ringbuf_storage));
+  // TODO: 待实现 drv_uart.c 后启用
+  // uart_init(uart1_rs232, Uart1_ringbuf_storage, sizeof(Uart1_ringbuf_storage));
+  // uart_init(uart2_rs485, Uart2_ringbuf_storage, sizeof(Uart2_ringbuf_storage));
 
   // 初始化Modbus从机（地址145，寄存器地址100-199）
-  modbus_init(&g_modbus_1, uart1_rs232, 145, g_modbus_regs, 100, 100);
-  modbus_init(&g_modbus_2, uart2_rs485, 145, g_modbus_regs, 100, 100);
-
-  modbus_set_byte_timeout(&g_modbus_1, 250); // 设置字节间超时
-  modbus_set_byte_timeout(&g_modbus_2, 250);
-  modbus_set_read_timeout(&g_modbus_1, 600); // 设置读总超时
-  modbus_set_read_timeout(&g_modbus_2, 600);
+  // TODO: 待 UART 驱动实现后启用
+  // modbus_init(&g_modbus_1, uart1_rs232, 145, g_modbus_regs, 100, 100);
+  // modbus_init(&g_modbus_2, uart2_rs485, 145, g_modbus_regs, 100, 100);
+  // modbus_set_byte_timeout(&g_modbus_1, 250);
+  // modbus_set_byte_timeout(&g_modbus_2, 250);
+  // modbus_set_read_timeout(&g_modbus_1, 600);
+  // modbus_set_read_timeout(&g_modbus_2, 600);
 
   // 初始化ADC
-  adc_init(adc1);
-  adc_init(adc2);
-  adc_start_dma(adc1);
-  adc_start_dma(adc2);
+  // TODO: 待实现 drv_adc.c 后启用
+  // adc_init(adc1);
+  // adc_init(adc2);
+  // adc_start_dma(adc1);
+  // adc_start_dma(adc2);
 
   // 初始化RTOS内核
   osKernelInitialize();
 
   // 初始化SystemView并开启跟踪，便于分析任务切换和中断时序
-  SEGGER_SYSVIEW_Conf();
-  SEGGER_SYSVIEW_Start();
+  // TODO: F103 暂时禁用 SystemView（缺少汇编加速函数）
+  // SEGGER_SYSVIEW_Conf();
+  // SEGGER_SYSVIEW_Start();
 
   // 创建共享数据互斥锁：后续所有共享数据读写都必须经过这把锁
-  const osMutexAttr_t modbusDataMutex_attributes= {
-    .name= "ModbusDataMutex",
-  };
-  g_modbusDataMutex= osMutexNew(&modbusDataMutex_attributes);
-  if(g_modbusDataMutex == NULL)
-  {
-    // 锁创建失败时无法保证并发安全，直接进入统一错误处理
-    DRV_System_ErrorHandler();
-  }
+  // TODO: 待驱动实现后启用
+  // const osMutexAttr_t modbusDataMutex_attributes= {
+  //   .name= "ModbusDataMutex",
+  // };
+  // g_modbusDataMutex= osMutexNew(&modbusDataMutex_attributes);
+  // if(g_modbusDataMutex == NULL)
+  // {
+  //   DRV_System_ErrorHandler();
+  // }
 
+  // TODO: 待驱动层实现后启用任务
   // 创建LED闪烁任务
-  const osThreadAttr_t blinkTask_attributes= {
-    .name= "BlinkTask",
-    .stack_size= 128 * 4,
-    .priority= (osPriority_t)osPriorityNormal,
-  };
-  osThreadNew(BlinkTask, NULL, &blinkTask_attributes);
+  // const osThreadAttr_t blinkTask_attributes= {
+  //   .name= "BlinkTask",
+  //   .stack_size= 128 * 4,
+  //   .priority= (osPriority_t)osPriorityNormal,
+  // };
+  // osThreadNew(BlinkTask, NULL, &blinkTask_attributes);
 
   // 创建采集任务
-  const osThreadAttr_t collectTask_attributes= {
-    .name= "CollectTask",
-    .stack_size= 512 * 4,
-    .priority= (osPriority_t)osPriorityNormal,
-  };
-  osThreadNew(AppCollectTask, NULL, &collectTask_attributes);
+  // const osThreadAttr_t collectTask_attributes= {
+  //   .name= "CollectTask",
+  //   .stack_size= 512 * 4,
+  //   .priority= (osPriority_t)osPriorityNormal,
+  // };
+  // osThreadNew(AppCollectTask, NULL, &collectTask_attributes);
 
   // 创建Modbus1从机任务
-  const osThreadAttr_t modbus1Task_attributes= {
-    .name= "Modbus1Task",
-    .stack_size= 512 * 4,
-    .priority= (osPriority_t)osPriorityNormal,
-  };
-
-  osThreadNew(Modbus1Task, NULL, &modbus1Task_attributes);
+  // const osThreadAttr_t modbus1Task_attributes= {
+  //   .name= "Modbus1Task",
+  //   .stack_size= 512 * 4,
+  //   .priority= (osPriority_t)osPriorityNormal,
+  // };
+  // osThreadNew(Modbus1Task, NULL, &modbus1Task_attributes);
 
   // 创建Modbus2从机任务
-  const osThreadAttr_t modbus2Task_attributes= {
-    .name= "Modbus2Task",
-    .stack_size= 512 * 4,
-    .priority= (osPriority_t)osPriorityNormal,
-  };
-
-  osThreadNew(Modbus2Task, NULL, &modbus2Task_attributes);
+  // const osThreadAttr_t modbus2Task_attributes= {
+  //   .name= "Modbus2Task",
+  //   .stack_size= 512 * 4,
+  //   .priority= (osPriority_t)osPriorityNormal,
+  // };
+  // osThreadNew(Modbus2Task, NULL, &modbus2Task_attributes);
 
   // 创建ADC打印任务（实时优先级）
   // const osThreadAttr_t adcPrintTask_attributes =
@@ -166,101 +174,97 @@ int main(void)
   }
 }
 
-/**
- * @brief   LED闪烁任务
- *
- * @param[in]   argument  任务参数（未使用）
- *
- * @return  None
- */
-static void BlinkTask(void *argument)
-{
-  (void)argument;
+// TODO: 待驱动实现后启用
+// /**
+//  * @brief   LED闪烁任务
+//  *
+//  * @param[in]   argument  任务参数（未使用）
+//  *
+//  * @return  None
+//  */
+// static void BlinkTask(void *argument)
+// {
+//   (void)argument;
+//
+//   while(1)
+//   {
+//     if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
+//     {
+//       app_modbus_update_regs(g_modbus_regs, &g_data);
+//       osMutexRelease(g_modbusDataMutex);
+//     }
+//     led_toggle(led1);
+//     osDelay(500);
+//   }
+// }
 
-  while(1)
-  {
-    // 在映射更新窗口内加锁，避免与采集任务/Modbus读回调并发访问共享数据
-    if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
-    {
-      app_modbus_update_regs(g_modbus_regs, &g_data); // 实时更新保持寄存器
-      osMutexRelease(g_modbusDataMutex);
-    }
-    led_toggle(led1);
-    osDelay(500);
-  }
-}
+// /**
+//  * @brief     采集任务
+//  *
+//  * @param[in]   argument  任务参数（未使用）
+//  *
+//  * @return  None
+//  */
+// void AppCollectTask(void *argument)
+// {
+//   (void)argument;
+//
+//   while(1)
+//   {
+//     Data_t local_data= g_data;
+//     app_digital_sample_volty(&local_data);
+//
+//     if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
+//     {
+//       g_data= local_data;
+//       osMutexRelease(g_modbusDataMutex);
+//     }
+//
+//     osDelay(30);
+//   }
+// }
 
-/**
- * @brief     采集任务
- *
- * @param[in]   argument  任务参数（未使用）
- *
- * @return  None
- */
-void AppCollectTask(void *argument)
-{
-  (void)argument;
+// /**
+//  * @brief   Modbus从机任务
+//  *
+//  * @details 循环调用modbus_poll()处理Modbus请求，
+//  *          主机可通过功能码0x03读取保持寄存器
+//  *
+//  * @param[in]   argument  任务参数（未使用）
+//  *
+//  * @return  None
+//  */
+// static void Modbus1Task(void *argument)
+// {
+//   (void)argument;
+//
+//   while(1)
+//   {
+//     modbus_poll(&g_modbus_1);
+//     osDelay(1);
+//   }
+// }
 
-  while(1)
-  {
-    // 先在本地变量完成采集计算，避免把函数内部延时包含在临界区内
-    Data_t local_data= g_data;
-    app_digital_sample_volty(&local_data); // 采集200次后计算平均值
-
-    // 仅在最终提交共享数据时短时间持锁，降低对Modbus轮询实时性的影响
-    if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
-    {
-      g_data= local_data;
-      osMutexRelease(g_modbusDataMutex);
-    }
-
-    osDelay(30);
-  }
-}
-
-/**
- * @brief   Modbus从机任务
- *
- * @details 循环调用modbus_poll()处理Modbus请求，
- *          主机可通过功能码0x03读取保持寄存器
- *
- * @param[in]   argument  任务参数（未使用）
- *
- * @return  None
- */
-static void Modbus1Task(void *argument)
-{
-  (void)argument;
-
-  while(1)
-  {
-    // 处理Modbus请求（阻塞式，内部会等待接收）
-    modbus_poll(&g_modbus_1);
-    osDelay(1);
-  }
-}
-
-/**
- * @brief   Modbus从机任务
- *
- * @details 循环调用modbus_poll()处理Modbus请求，
- *          主机可通过功能码0x03读取保持寄存器
- *
- * @param[in]   argument  任务参数（未使用）
- *
- * @return  None
- */
-static void Modbus2Task(void *argument)
-{
-  (void)argument;
-
-  while(1)
-  {
-    // 处理Modbus请求（阻塞式，内部会等待接收）
-    modbus_poll(&g_modbus_2);
-    osDelay(1);
-  }
-}
+// /**
+//  * @brief   Modbus从机任务
+//  *
+//  * @details 循环调用modbus_poll()处理Modbus请求，
+//  *          主机可通过功能码0x03读取保持寄存器
+//  *
+//  * @param[in]   argument  任务参数（未使用）
+//  *
+//  * @return  None
+//  */
+// static void Modbus2Task(void *argument)
+// {
+//   (void)argument;
+//
+//   while(1)
+//   {
+//     modbus_poll(&g_modbus_2);
+//     osDelay(1);
+//   }
+// }
 
 // 定义ADC滤波器
 // static MAF_Handle_t s_adc_filter_1;
