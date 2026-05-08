@@ -13,23 +13,23 @@
 #include <string.h>
 
 // 中间层
-#include "cmsis_os2.h"
-#include "printf.h"     // 开源printf库
 #include "SEGGER_SYSVIEW.h"
+#include "cmsis_os2.h"
+#include "printf.h" // 开源printf库
 
 // 组件
 #include "filter.h"
 
 // 设备层
 #include "led.h"
-#include "relay.h"
 #include "modbus.h"
+#include "relay.h"
 
 // 驱动层
+#include "board.h"
+#include "drv_adc.h"
 #include "drv_system.h"
 #include "drv_uart.h"
-#include "drv_adc.h"
-#include "board.h"
 
 // 应用层
 #include "app_digital_sample.h"
@@ -44,10 +44,8 @@ static void BlinkTask(void *argument);
 static void Modbus1Task(void *argument);
 static void Modbus2Task(void *argument);
 
-
 // // ADC采样打印任务，包含两级滤波
 // static void AdcPrintTask(void *argument);
-
 
 // 采样参数
 static Data_t g_data;
@@ -55,16 +53,15 @@ static Data_t g_data;
 static modbus_dev_t g_modbus_1;
 static modbus_dev_t g_modbus_2;
 // Modbus保持寄存器（100个）
-static uint16_t g_modbus_regs[100] = {0};
+static uint16_t g_modbus_regs[100]= {0};
 // 共享数据互斥锁（保护g_data与g_modbus_regs的一致性）
-osMutexId_t g_modbusDataMutex = NULL;
-
+osMutexId_t g_modbusDataMutex= NULL;
 
 int main(void)
 {
   // 在系统初始化之前清零 AXI SRAM(D1)
-  memset((void*)0x24000000, 0, 512 * 1024);  // 清零整个 AXI SRAM (512KB)
-  
+  memset((void *)0x24000000, 0, 512 * 1024); // 清零整个 AXI SRAM (512KB)
+
   // 清缓冲区
   memset(Uart1_dma_rx_buf, 0, sizeof(Uart1_dma_rx_buf));
   memset(Uart2_dma_rx_buf, 0, sizeof(Uart2_dma_rx_buf));
@@ -87,18 +84,18 @@ int main(void)
   // 初始化Modbus从机（地址145，寄存器地址100-199）
   modbus_init(&g_modbus_1, uart1_rs232, 145, g_modbus_regs, 100, 100);
   modbus_init(&g_modbus_2, uart2_rs485, 145, g_modbus_regs, 100, 100);
-  
-  modbus_set_byte_timeout(&g_modbus_1, 250);  //设置字节间超时
+
+  modbus_set_byte_timeout(&g_modbus_1, 250); // 设置字节间超时
   modbus_set_byte_timeout(&g_modbus_2, 250);
-  modbus_set_read_timeout(&g_modbus_1, 600);  //设置读总超时
+  modbus_set_read_timeout(&g_modbus_1, 600); // 设置读总超时
   modbus_set_read_timeout(&g_modbus_2, 600);
 
   // 初始化ADC
   adc_init(adc1);
   adc_init(adc2);
-  adc_start_dma(adc1);  
+  adc_start_dma(adc1);
   adc_start_dma(adc2);
-  
+
   // 初始化RTOS内核
   osKernelInitialize();
 
@@ -107,11 +104,10 @@ int main(void)
   SEGGER_SYSVIEW_Start();
 
   // 创建共享数据互斥锁：后续所有共享数据读写都必须经过这把锁
-  const osMutexAttr_t modbusDataMutex_attributes =
-  {
-    .name = "ModbusDataMutex",
+  const osMutexAttr_t modbusDataMutex_attributes= {
+    .name= "ModbusDataMutex",
   };
-  g_modbusDataMutex = osMutexNew(&modbusDataMutex_attributes);
+  g_modbusDataMutex= osMutexNew(&modbusDataMutex_attributes);
   if(g_modbusDataMutex == NULL)
   {
     // 锁创建失败时无法保证并发安全，直接进入统一错误处理
@@ -119,43 +115,38 @@ int main(void)
   }
 
   // 创建LED闪烁任务
-  const osThreadAttr_t blinkTask_attributes =
-  {
-    .name = "BlinkTask",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  const osThreadAttr_t blinkTask_attributes= {
+    .name= "BlinkTask",
+    .stack_size= 128 * 4,
+    .priority= (osPriority_t)osPriorityNormal,
   };
   osThreadNew(BlinkTask, NULL, &blinkTask_attributes);
 
   // 创建采集任务
-  const osThreadAttr_t collectTask_attributes =
-  {
-    .name = "CollectTask",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  const osThreadAttr_t collectTask_attributes= {
+    .name= "CollectTask",
+    .stack_size= 512 * 4,
+    .priority= (osPriority_t)osPriorityNormal,
   };
   osThreadNew(AppCollectTask, NULL, &collectTask_attributes);
 
   // 创建Modbus1从机任务
-  const osThreadAttr_t modbus1Task_attributes =
-  {
-    .name = "Modbus1Task",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  const osThreadAttr_t modbus1Task_attributes= {
+    .name= "Modbus1Task",
+    .stack_size= 512 * 4,
+    .priority= (osPriority_t)osPriorityNormal,
   };
 
   osThreadNew(Modbus1Task, NULL, &modbus1Task_attributes);
 
   // 创建Modbus2从机任务
-  const osThreadAttr_t modbus2Task_attributes =
-  {
-    .name = "Modbus2Task",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  const osThreadAttr_t modbus2Task_attributes= {
+    .name= "Modbus2Task",
+    .stack_size= 512 * 4,
+    .priority= (osPriority_t)osPriorityNormal,
   };
 
   osThreadNew(Modbus2Task, NULL, &modbus2Task_attributes);
-
 
   // 创建ADC打印任务（实时优先级）
   // const osThreadAttr_t adcPrintTask_attributes =
@@ -191,7 +182,7 @@ static void BlinkTask(void *argument)
     // 在映射更新窗口内加锁，避免与采集任务/Modbus读回调并发访问共享数据
     if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
     {
-      app_modbus_update_regs(g_modbus_regs, &g_data);  // 实时更新保持寄存器
+      app_modbus_update_regs(g_modbus_regs, &g_data); // 实时更新保持寄存器
       osMutexRelease(g_modbusDataMutex);
     }
     led_toggle(led1);
@@ -213,13 +204,13 @@ void AppCollectTask(void *argument)
   while(1)
   {
     // 先在本地变量完成采集计算，避免把函数内部延时包含在临界区内
-    Data_t local_data = g_data;
-    app_digital_sample_volty(&local_data); //采集200次后计算平均值
+    Data_t local_data= g_data;
+    app_digital_sample_volty(&local_data); // 采集200次后计算平均值
 
     // 仅在最终提交共享数据时短时间持锁，降低对Modbus轮询实时性的影响
     if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
     {
-      g_data = local_data;
+      g_data= local_data;
       osMutexRelease(g_modbusDataMutex);
     }
 
@@ -280,7 +271,6 @@ static void Modbus2Task(void *argument)
 //   uint16_t *adc_buffer = NULL; /**< ADC DMA缓冲区指针 */
 //   uint16_t adcx = 0;           /**< 一级滤波后的ADC值 */
 //   uint16_t adcx2 = 0;          /**< 二级滤波后的ADC值 */
-
 
 //   (void)argument;
 
