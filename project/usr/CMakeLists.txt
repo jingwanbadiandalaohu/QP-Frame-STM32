@@ -26,9 +26,6 @@ if(PLATFORM STREQUAL "stm32f103rct6")
     set(MCU_PATH "stm32f103rct6")
     set(MCU_SERIES "f1")
     set(FREERTOS_PORT "ARM_CM3")
-    list(APPEND PRO_SRC
-        core/${PLATFORM}/stm32f1xx_hal_timebase_tim.c                               #HAL时基定时器
-    )
 elseif(PLATFORM STREQUAL "stm32h750vbt6")
     set(__CHIP_TYPE__ "STM32H750VBT6")
     set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/../ide/gcc/scripts/cmake/armgcc_cm7.cmake")
@@ -116,18 +113,17 @@ set(MIDDLEWARE_SRC
 
     ../Middlewares/Third_Party/Printf/printf.c                                      #Printf库
     ../Middlewares/Third_Party/nanoMODBUS/nanomodbus.c                              #nanoMODBUS库
-    # TODO: F103 暂时禁用 SystemView（缺少汇编加速函数）
-    # ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT.c                       #SEGGER RTT实现
-    # ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_SYSVIEW.c                   #SEGGER SystemView核心
-    # ../Middlewares/Third_Party/SystemView/Sample/FreeRTOSV10/SEGGER_SYSVIEW_FreeRTOS.c #FreeRTOS跟踪适配
+    # F103 和 H750 共用的 SystemView 源码
+    ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT.c                       #SEGGER RTT实现
+    ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_SYSVIEW.c                   #SEGGER SystemView核心
+    ../Middlewares/Third_Party/SystemView/Sample/FreeRTOSV10/SEGGER_SYSVIEW_FreeRTOS.c #FreeRTOS跟踪适配
 )
 
-# H750 特有的中间件（汇编加速）
-if(PLATFORM STREQUAL "stm32h750vbt6")
-    list(APPEND MIDDLEWARE_SRC
-        ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT_ASM_ARMv7M.S        #SEGGER RTT汇编加速
-    )
-endif()
+# 汇编加速（F103的Cortex-M3和H750的Cortex-M7均属ARMv7-M架构，都可以使用）
+list(APPEND MIDDLEWARE_SRC
+    ../Middlewares/Third_Party/SystemView/SEGGER/SEGGER_RTT_ASM_ARMv7M.S        #SEGGER RTT汇编加速
+)
+
 
 # ============================================================================
 # 创建可执行文件目标

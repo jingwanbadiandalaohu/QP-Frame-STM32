@@ -17,13 +17,11 @@
             "cwd": "${workspaceRoot}",
             "type": "cortex-debug",
             "request": "launch",
-            "name": "OpenOCD J-Link H750",
-            "servertype": "openocd",
-            "device": "STM32H750VB",
-            "configFiles": [
-                "interface/jlink.cfg",
-                "target/stm32h7x.cfg"
-            ],
+            "name": "J-Link (Official) F103",
+            "servertype": "jlink",
+            "device": "STM32F103RC",
+            "interface": "swd",
+            "serverpath": "C:\\Program Files\\SEGGER\\JLink_V826\\JLinkGDBServerCL.exe",
             "executable": "./project/usr/build/output/Template.elf",
             "runToEntryPoint": "main"
         },
@@ -37,20 +35,6 @@
             "configFiles": [
                 "interface/stlink.cfg",
                 "target/stm32h7x.cfg"
-            ],
-            "executable": "./project/usr/build/output/Template.elf",
-            "runToEntryPoint": "main"
-        },
-        {
-            "cwd": "${workspaceRoot}",
-            "type": "cortex-debug",
-            "request": "launch",
-            "name": "OpenOCD J-Link F103",
-            "servertype": "openocd",
-            "device": "STM32F103RC",
-            "configFiles": [
-                "interface/jlink.cfg",
-                "target/stm32f1x.cfg"
             ],
             "executable": "./project/usr/build/output/Template.elf",
             "runToEntryPoint": "main"

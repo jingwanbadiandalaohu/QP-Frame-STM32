@@ -96,6 +96,7 @@ to exclude the API function. */
 #define INCLUDE_uxTaskGetStackHighWaterMark 1
 #define INCLUDE_xTaskGetCurrentTaskHandle 1
 #define INCLUDE_eTaskGetState 1
+#define INCLUDE_xTaskGetIdleTaskHandle 1
 
 /*
  * The CMSIS-RTOS V2 defines 56 priorities (0-55).

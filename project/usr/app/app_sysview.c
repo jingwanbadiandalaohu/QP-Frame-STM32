@@ -16,7 +16,14 @@
 extern const SEGGER_SYSVIEW_OS_API SYSVIEW_X_OS_TraceAPI;
 
 #define SYSVIEW_APP_NAME        "Surface_Controller_V2"
-#define SYSVIEW_DEVICE_NAME     "STM32H750VBT6"
+
+#if defined(STM32F103xE)
+  #define SYSVIEW_DEVICE_NAME     "STM32F103RCT6"
+#elif defined(STM32H750xx)
+  #define SYSVIEW_DEVICE_NAME     "STM32H750VBT6"
+#else
+  #define SYSVIEW_DEVICE_NAME     "Cortex-M"
+#endif
 #define SYSVIEW_TIMESTAMP_FREQ  (configCPU_CLOCK_HZ)
 #define SYSVIEW_CPU_FREQ        (configCPU_CLOCK_HZ)
 #define SYSVIEW_RAM_BASE        (0x20000000UL)

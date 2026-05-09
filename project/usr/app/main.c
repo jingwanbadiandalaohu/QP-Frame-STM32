@@ -13,7 +13,8 @@
 #include <string.h>
 
 // 中间层
-// #include "SEGGER_SYSVIEW.h" // TODO: F103 暂时禁用 SystemView
+#include "SEGGER_SYSVIEW.h"
+
 #include "cmsis_os2.h"
 // #include "printf.h" // 开源printf库（暂未使用）
 
@@ -112,9 +113,8 @@ int main(void)
   osKernelInitialize();
 
   // 初始化SystemView并开启跟踪，便于分析任务切换和中断时序
-  // TODO: F103 暂时禁用 SystemView（缺少汇编加速函数）
-  // SEGGER_SYSVIEW_Conf();
-  // SEGGER_SYSVIEW_Start();
+  SEGGER_SYSVIEW_Conf();
+  SEGGER_SYSVIEW_Start();
 
   // 创建共享数据互斥锁：后续所有共享数据读写都必须经过这把锁
   // TODO: 待驱动实现后启用
@@ -202,7 +202,8 @@ static void BlinkTask(void *argument)
     }
     led_toggle(led1);
     */
-    osDelay(500);
+    SEGGER_SYSVIEW_Print("Hello Dylan!\n");
+    osDelay(1);
   }
 }
 //   }

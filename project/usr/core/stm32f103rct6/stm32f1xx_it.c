@@ -103,11 +103,15 @@ extern void xPortSysTickHandler(void);
  */
 void SysTick_Handler(void)
 {
+  // traceISR_ENTER(); // SystemView 记录中断进入
+
   // 确保FreeRTOS调度器启动后才调用其Tick处理函数
-  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+  if(xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
   {
     xPortSysTickHandler();
   }
+
+  // traceISR_EXIT();  // SystemView 记录中断退出
 }
 
 /**
@@ -115,5 +119,7 @@ void SysTick_Handler(void)
  */
 void TIM4_IRQHandler(void)
 {
+  // traceISR_ENTER(); // SystemView 记录中断进入
   HAL_TIM_IRQHandler(&htim4);
+  // traceISR_EXIT();  // SystemView 记录中断退出
 }
