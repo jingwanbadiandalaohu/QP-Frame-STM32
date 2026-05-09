@@ -18,6 +18,216 @@
 
 ---
 
+## MDK (Keil) 工程操作
+
+### 工程结构理解
+
+当需要理解任何 MDK 工程结构时，按以下通用步骤分析：
+
+#### 1. 定位工程文件
+
+MDK 工程文件格式：`*.uvprojx`（XML 格式）
+
+常见位置：
+- 项目根目录
+- `project/` 或 `ide/keil/` 子目录
+- 使用 `fileSearch` 查找：`fileSearch(query=".uvprojx")`
+
+#### 2. 提取关键配置信息
+
+**目标芯片配置：**
+- `<TargetName>`：编译目标名称
+- `<Device>`：具体芯片型号（如 STM32F103RC、STM32H750VBTx）
+- `<Cpu>`：内核类型与内存配置（如 Cortex-M3、Cortex-M7）
+
+**编译器配置：**
+- `<Define>`：预定义宏（如 `USE_HAL_DRIVER`、`STM32H750xx`）
+- `<IncludePath>`：头文件包含路径（分号 `;` 分隔）
+- `<Optim>`：优化等级（0=无优化，1=Level 1，2=Level 2，3=Level 3）
+- `<uC99>`：是否启用 C99 标准
+
+**链接器配置：**
+- `<ScatterFile>`：分散加载文件（`.sct`）
+- `<TextAddressRange>`：代码段起始地址
+- `<DataAddressRange>`：数据段起始地址
+
+#### 3. 分析项目分组结构
+
+**查找 `<Groups>` 节点：**
+- 每个 `<Group>` 代表一个分组
+- `<GroupName>`：分组名称
+- `<Files>`：包含的文件列表
+- `<FilePath>`：文件相对路径
+
+**常见分组模式：**
+- **应用层**：`App`、`Application`、`User`
+- **驱动层**：`Drivers`、`BSP`、`HAL_Driver`
+- **中间件**：`Middlewares`、`RTOS`、`Third_Party`
+- **启动文件**：`Startup`、`Core`、`CMSIS`
+- **外设库**：`STM32_HAL`、`StdPeriph_Driver`
+
+#### 4. 提取头文件包含路径
+
+**使用 PowerShell 快速提取：**
+```powershell
+Select-String -Path "path/to/project.uvprojx" -Pattern "IncludePath" -Context 0,1 | Select-Object -First 5
+```
+
+**使用 grep 搜索：**
+```bash
+grepSearch(query="IncludePath", includePattern="**/*.uvprojx")
+```
+
+**路径特点：**
+- 相对于工程文件所在目录
+- 使用反斜杠 `\` 或 `..` 表示相对路径
+- 多个路径用分号 `;` 分隔
+
+#### 5. 输出结构摘要
+
+分析完成后，输出以下信息：
+
+**基本信息：**
+- 工程文件路径
+- 目标芯片型号与内核
+- 编译器版本与优化等级
+
+**项目结构：**
+- 分组列表（树形展示）
+- 每个分组包含的文件数量
+- 文件类型分布（`.c`、`.h`、`.s`）
+
+**配置信息：**
+- 预定义宏列表
+- 头文件包含路径列表（按层次分类）
+- 链接器配置（Flash/RAM 地址）
+
+**架构分析（可选）：**
+- 识别项目采用的架构模式（分层、模块化等）
+- 检查是否存在架构约束违反（如跨层调用）
+
+#### 6. 实用技巧
+
+**快速定位关键文件：**
+- `main.c`：通常在 `App` 或 `User` 分组
+- 启动文件（`.s`）：通常在 `Startup` 或 `Core` 分组
+- 中断处理（`*_it.c`）：通常在 `Core` 或 `User` 分组
+- HAL 配置（`*_hal_conf.h`）：通常在 `Inc` 或 `Core` 分组
+
+**识别第三方库：**
+- FreeRTOS：`tasks.c`、`queue.c`、`portable/`
+- CMSIS：`core_cm*.h`、`system_*.c`
+- HAL 库：`stm32*xx_hal_*.c`
+- 中间件：`Middlewares/` 或 `Third_Party/` 目录
+
+**检查编译配置：**
+- 多目标配置：一个工程可能包含多个 `<Target>`（如 Debug/Release）
+- 条件编译：检查 `<Define>` 中的宏定义
+- 优化等级：影响代码大小和执行速度
+
+#### 7. 注意事项
+
+- 工程文件是 XML 格式，可能很大（几千行），优先使用搜索而非全文读取
+- 路径分隔符可能是 `\` 或 `/`，需要统一处理
+- 同一工程可能有多个编译目标（Target），注意区分
+- 头文件路径是相对路径，需要结合工程文件位置计算绝对路径
+
+---
+
+### 工程编译流程
+
+当用户要求编译 MDK 工程时，按以下流程执行：
+
+#### 1. 定位工程文件和 Keil 路径
+
+- 查找 `*.uvprojx` 工程文件
+- 确认 Keil 安装路径（通常为 `C:\Keil_v5\UV4\UV4.exe` 或 `D:\DevelopTool\Keil\UV4\UV4.exe`）
+
+#### 2. 执行编译命令
+
+**增量编译（Build）：**
+```bash
+& "Keil路径\UV4.exe" -b "工程文件路径.uvprojx" -j0
+```
+
+**全量编译（Rebuild）：**
+```bash
+& "Keil路径\UV4.exe" -r "工程文件路径.uvprojx" -j0
+```
+
+**参数说明：**
+- `-b`：Build（增量编译，只编译修改过的文件）
+- `-r`：Rebuild（全量编译，重新编译所有文件）
+- `-j0`：使用所有 CPU 核心并行编译
+- `-o`：输出日志到文件（可选）
+- `timeout: 120000`：设置 2 分钟超时
+
+#### 3. 读取编译日志
+
+**Keil 自动生成的日志文件：**
+- 路径：`工程目录/Objects/工程名.build_log.htm`
+- 格式：HTML 格式，包含完整编译输出
+
+**读取方式：**
+```powershell
+# 等待文件写入完成后读取尾部
+Start-Sleep -Seconds 1; Get-Content "path/to/project.build_log.htm" -Tail 50
+```
+
+或直接读取完整文件：
+```bash
+readFile(path="path/to/project.build_log.htm")
+```
+
+#### 4. 分析并输出结果
+
+从日志中提取并展示：
+
+**编译状态：**
+- 错误数（Error(s)）
+- 警告数（Warning(s)）
+- 编译时间（Build Time Elapsed）
+
+**程序大小（仅 Rebuild 后可用）：**
+- `Code`：代码段大小（字节）
+- `RO-data`：只读数据大小（常量、字符串）
+- `RW-data`：已初始化可读写数据大小
+- `ZI-data`：未初始化数据大小（BSS段、堆栈）
+
+**资源占用计算：**
+- **Flash 占用** = Code + RO-data + RW-data
+- **RAM 占用** = RW-data + ZI-data
+- **占用百分比**：根据目标芯片规格计算
+
+#### 5. 用户触发关键词
+
+当用户说以下任一关键词时，自动执行编译流程：
+- "编译"
+- "重新编译"
+- "rebuild"
+- "build"
+
+**默认行为：**
+- 首次编译或需要完整信息时使用 Rebuild
+- 快速验证时使用 Build
+
+#### 6. 编译日志分析示例
+
+**成功示例：**
+```
+".\Objects\Template.axf" - 0 Error(s), 0 Warning(s).
+Program Size: Code=30564 RO-data=940 RW-data=1040 ZI-data=72512
+Build Time Elapsed:  00:00:03
+```
+
+**输出格式：**
+- ✅ 编译成功：0 Error(s), 0 Warning(s)
+- ⏱️ 编译时间：3 秒
+- 💾 Flash 占用：32,544 字节 (≈31.8 KB)
+- 💾 RAM 占用：73,552 字节 (≈71.8 KB)
+
+---
+
 ## 文件创建规则
 
 **禁止随意创建 Markdown 文档文件。**
@@ -148,7 +358,7 @@ if(condition) {
 ### 基本原则
 
 - 注释使用完整句子，语法正确，标点恰当。
-- 注释应解释“为什么”而非“怎么做”，假设读者了解 C 语言。
+- 注释应解释"为什么"而非"怎么做"，假设读者了解 C 语言。
 - 注释数量和长度应与代码复杂度成正比。
 - 避免冗余注释（如 `numero <<= 2; // 左移2位`）。
 - 生成新代码时，为关键逻辑和非显而易见步骤添加简短中文注释。
@@ -321,7 +531,7 @@ HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
 
 ### C 工程组织偏好
 
-- `main.c` 保持“按层分组 include + 中文分组注释”的结构顺序。
+- `main.c` 保持"按层分组 include + 中文分组注释"的结构顺序。
 - RTOS 任务创建采用：静态任务函数声明 → `osThreadAttr_t` 局部常量 → `osThreadNew()`。
 - 外设初始化优先顺序：系统初始化 → 设备初始化 → 驱动启动（如 DMA）→ RTOS 启动。
 
@@ -345,14 +555,14 @@ HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
 - 是否破坏分层：`App/Device` 是否直接触达 HAL。
 - 失败路径是否完整：返回值、超时、空指针、边界值。
 - 共享资源是否安全：中断/任务并发、`volatile`、临界区。
-- 注释是否解释“为什么”，且与代码保持一致。
+- 注释是否解释"为什么"，且与代码保持一致。
 - 是否符合现有风格：2 空格缩进、`if(condition)` 与大括号换行。
 
 ### 复杂任务质量审查（可选）
 
 - 技术维度：代码质量、测试覆盖、规范遵循。
 - 战略维度：需求匹配、架构一致、风险评估。
-- 综合评分：0~100，并给出“通过/退回/需讨论”。
+- 综合评分：0~100，并给出"通过/退回/需讨论"。
 
 ---
 
@@ -376,9 +586,9 @@ HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
 
 ### 偏好沉淀工作流
 
-- 每次任务结束时，给出“可沉淀偏好候选”清单（仅列新增或变更项）。
-- 当用户回复“沉淀”时，自动将候选项追加写入 `agents.md`。
-- 若用户未回复“沉淀”，则不写入文件，只在当次会话临时使用。
+- 每次任务结束时，给出"可沉淀偏好候选"清单（仅列新增或变更项）。
+- 当用户回复"沉淀"时，自动将候选项追加写入 `agents.md`。
+- 若用户未回复"沉淀"，则不写入文件，只在当次会话临时使用。
 
 ---
 

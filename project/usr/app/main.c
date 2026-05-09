@@ -30,7 +30,6 @@
 // #include "board.h"     // TODO: 待驱动实现后启用
 // #include "drv_adc.h"   // TODO: 待驱动实现后启用
 #include "drv_system.h"
-#include "stm32f1xx_hal.h"
 // #include "drv_uart.h"  // TODO: 待驱动实现后启用
 
 // 应用层
@@ -60,8 +59,8 @@ static void BlinkTask(void *argument);
 // 任务运行状态测试计数器
 uint32_t g_taskTestCounter= 0;
 
-// 共享数据互斥锁（保护g_data与g_modbus_regs的一致性）（暂时注释，待驱动实现后启用）
-// osMutexId_t g_modbusDataMutex= NULL;
+// 共享数据互斥锁（保护g_data与g_modbus_regs的一致性）（待驱动实现后正式使用）
+osMutexId_t g_modbusDataMutex= NULL;
 
 int main(void)
 {
@@ -117,15 +116,14 @@ int main(void)
   SEGGER_SYSVIEW_Start();
 
   // 创建共享数据互斥锁：后续所有共享数据读写都必须经过这把锁
-  // TODO: 待驱动实现后启用
-  // const osMutexAttr_t modbusDataMutex_attributes= {
-  //   .name= "ModbusDataMutex",
-  // };
-  // g_modbusDataMutex= osMutexNew(&modbusDataMutex_attributes);
-  // if(g_modbusDataMutex == NULL)
-  // {
-  //   DRV_System_ErrorHandler();
-  // }
+  const osMutexAttr_t modbusDataMutex_attributes= {
+    .name= "ModbusDataMutex",
+  };
+  g_modbusDataMutex= osMutexNew(&modbusDataMutex_attributes);
+  if(g_modbusDataMutex == NULL)
+  {
+    DRV_System_ErrorHandler();
+  }
 
   // 创建LED闪烁任务
   const osThreadAttr_t blinkTask_attributes= {
