@@ -29,6 +29,7 @@
 // #include "board.h"     // TODO: 待驱动实现后启用
 // #include "drv_adc.h"   // TODO: 待驱动实现后启用
 #include "drv_system.h"
+#include "stm32f1xx_hal.h"
 // #include "drv_uart.h"  // TODO: 待驱动实现后启用
 
 // 应用层
@@ -38,8 +39,8 @@
 // 采集任务（暂时注释，待驱动实现后启用）
 // static void AppCollectTask(void *argument);
 
-// LED闪烁任务（暂时注释，待驱动实现后启用）
-// static void BlinkTask(void *argument);
+// LED闪烁任务
+static void BlinkTask(void *argument);
 
 // Modbus从机任务（暂时注释，待驱动实现后启用）
 // static void Modbus1Task(void *argument);
@@ -54,6 +55,9 @@
 
 // Modbus保持寄存器（100个）（暂时注释，待驱动实现后启用）
 // static uint16_t g_modbus_regs[100]= {0};
+
+// 任务运行状态测试计数器
+uint32_t g_taskTestCounter= 0;
 
 // 共享数据互斥锁（保护g_data与g_modbus_regs的一致性）（暂时注释，待驱动实现后启用）
 // osMutexId_t g_modbusDataMutex= NULL;
@@ -123,14 +127,13 @@ int main(void)
   //   DRV_System_ErrorHandler();
   // }
 
-  // TODO: 待驱动层实现后启用任务
   // 创建LED闪烁任务
-  // const osThreadAttr_t blinkTask_attributes= {
-  //   .name= "BlinkTask",
-  //   .stack_size= 128 * 4,
-  //   .priority= (osPriority_t)osPriorityNormal,
-  // };
-  // osThreadNew(BlinkTask, NULL, &blinkTask_attributes);
+  const osThreadAttr_t blinkTask_attributes= {
+    .name= "BlinkTask",
+    .stack_size= 128 * 4,
+    .priority= (osPriority_t)osPriorityNormal,
+  };
+  osThreadNew(BlinkTask, NULL, &blinkTask_attributes);
 
   // 创建采集任务
   // const osThreadAttr_t collectTask_attributes= {
@@ -174,27 +177,34 @@ int main(void)
   }
 }
 
-// TODO: 待驱动实现后启用
-// /**
-//  * @brief   LED闪烁任务
-//  *
-//  * @param[in]   argument  任务参数（未使用）
-//  *
-//  * @return  None
-//  */
-// static void BlinkTask(void *argument)
-// {
-//   (void)argument;
-//
-//   while(1)
-//   {
-//     if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
-//     {
-//       app_modbus_update_regs(g_modbus_regs, &g_data);
-//       osMutexRelease(g_modbusDataMutex);
-//     }
-//     led_toggle(led1);
-//     osDelay(500);
+/**
+ * @brief   LED闪烁任务（当前用于任务运行测试）
+ *
+ * @param[in]   argument  任务参数（未使用）
+ *
+ * @return  None
+ */
+static void BlinkTask(void *argument)
+{
+  (void)argument;
+
+  while(1)
+  {
+    // 自加计数器，用于在调试器中观察任务是否运行
+    g_taskTestCounter++;
+
+    // TODO: 待驱动实现后启用以下逻辑
+    /*
+    if(osMutexAcquire(g_modbusDataMutex, osWaitForever) == osOK)
+    {
+      app_modbus_update_regs(g_modbus_regs, &g_data);
+      osMutexRelease(g_modbusDataMutex);
+    }
+    led_toggle(led1);
+    */
+    osDelay(500);
+  }
+}
 //   }
 // }
 

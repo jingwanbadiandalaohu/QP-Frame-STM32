@@ -26,6 +26,9 @@ if(PLATFORM STREQUAL "stm32f103rct6")
     set(MCU_PATH "stm32f103rct6")
     set(MCU_SERIES "f1")
     set(FREERTOS_PORT "ARM_CM3")
+    list(APPEND PRO_SRC
+        core/${PLATFORM}/stm32f1xx_hal_timebase_tim.c                               #HAL时基定时器
+    )
 elseif(PLATFORM STREQUAL "stm32h750vbt6")
     set(__CHIP_TYPE__ "STM32H750VBT6")
     set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/../ide/gcc/scripts/cmake/armgcc_cm7.cmake")
@@ -90,6 +93,10 @@ if(PLATFORM STREQUAL "stm32h750vbt6")
         drivers/${PLATFORM}/drv_gpio.c                                              #GPIO驱动
         drivers/${PLATFORM}/drv_uart.c                                              #UART驱动
         drivers/${PLATFORM}/drv_adc.c                                               #ADC驱动
+    )
+elseif(PLATFORM STREQUAL "stm32f103rct6")
+    list(APPEND PRO_SRC
+        core/${PLATFORM}/stm32f1xx_hal_timebase_tim.c                               #HAL时基定时器
     )
 endif()
 

@@ -5,17 +5,69 @@
             "cwd": "${workspaceRoot}",
             "type": "cortex-debug",
             "request": "launch",
-            "name": "J-Link STM32H750 Debug",
+            "name": "J-Link (Official) H750",
             "servertype": "jlink",
             "device": "STM32H750VB",
             "interface": "swd",
-            
-            // 替换为您电脑上 JLinkGDBServerCL.exe 的完整绝对路径
-            "serverpath": "C:\\Program Files\\SEGGER\\JLink_V826\\JLinkGDBServerCL.exe", 
-
+            "serverpath": "C:\\Program Files\\SEGGER\\JLink_V826\\JLinkGDBServerCL.exe",
             "executable": "./project/usr/build/output/Template.elf",
-            "runToEntryPoint": "main",
-            "toolchainPrefix": "arm-none-eabi"
+            "runToEntryPoint": "main"
+        },
+        {
+            "cwd": "${workspaceRoot}",
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "OpenOCD J-Link H750",
+            "servertype": "openocd",
+            "device": "STM32H750VB",
+            "configFiles": [
+                "interface/jlink.cfg",
+                "target/stm32h7x.cfg"
+            ],
+            "executable": "./project/usr/build/output/Template.elf",
+            "runToEntryPoint": "main"
+        },
+        {
+            "cwd": "${workspaceRoot}",
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "OpenOCD ST-Link H750",
+            "servertype": "openocd",
+            "device": "STM32H750VB",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32h7x.cfg"
+            ],
+            "executable": "./project/usr/build/output/Template.elf",
+            "runToEntryPoint": "main"
+        },
+        {
+            "cwd": "${workspaceRoot}",
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "OpenOCD J-Link F103",
+            "servertype": "openocd",
+            "device": "STM32F103RC",
+            "configFiles": [
+                "interface/jlink.cfg",
+                "target/stm32f1x.cfg"
+            ],
+            "executable": "./project/usr/build/output/Template.elf",
+            "runToEntryPoint": "main"
+        },
+        {
+            "cwd": "${workspaceRoot}",
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "OpenOCD ST-Link F103",
+            "servertype": "openocd",
+            "device": "STM32F103RC",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f1x.cfg"
+            ],
+            "executable": "./project/usr/build/output/Template.elf",
+            "runToEntryPoint": "main"
         }
     ]
 }

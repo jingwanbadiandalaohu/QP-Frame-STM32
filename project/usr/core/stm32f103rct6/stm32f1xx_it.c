@@ -7,6 +7,11 @@
 
 #include "stm32f1xx_it.h"
 #include "stm32f1xx.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "stm32f1xx_hal_tim.h"
+
+extern TIM_HandleTypeDef htim4;
 
 /**
  * @brief   非屏蔽中断处理
@@ -88,6 +93,8 @@ void DebugMon_Handler(void)
 {
 }
 
+extern void xPortSysTickHandler(void);
+
 /**
  * @brief   系统滴答定时器中断处理
  *
@@ -96,5 +103,17 @@ void DebugMon_Handler(void)
  */
 void SysTick_Handler(void)
 {
-  HAL_IncTick();
+  // 确保FreeRTOS调度器启动后才调用其Tick处理函数
+  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+  {
+    xPortSysTickHandler();
+  }
+}
+
+/**
+ * @brief   TIM4全局中断处理
+ */
+void TIM4_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim4);
 }
