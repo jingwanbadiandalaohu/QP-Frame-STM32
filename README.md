@@ -1,131 +1,174 @@
 # Codex-STM32
 
-基于 STM32H7/F1 的嵌入式应用开发框架，采用分层架构设计，使用Cmsis-Rtos2操作系统抽象层集成 FreeRTOS 实时操作系统。
+基于 STM32H7/F1 的嵌入式应用开发框架，面向表面面板控制器应用场景。采用分层架构设计（HAL → Driver → Device → App），使用 FreeRTOS + CMSIS-RTOS2 实时操作系统，实现业务逻辑与硬件的完全解耦。
 
 ## 项目特性
 
-- **多 MCU 支持**：STM32H750VBT6、STM32F103RCT6
-- **分层架构**：驱动层 → 设备层 → 应用层
-- **RTOS 支持**：集成 FreeRTOS + CMSIS-RTOS2 接口
-- **多 IDE 支持**：Keil MDK、GCC/CMake、EIDE
-- **通信协议**：Modbus RTU（基于 nanoMODBUS）
-- **外设驱动**：GPIO、UART、ADC（支持 DMA）
-- **工具组件**：环形缓冲区、数字滤波器（MAF/WMAF）
+- **多平台支持**：STM32H750VBT6（Cortex-M7, 480MHz）已完成 / STM32F103RCT6（Cortex-M3, 72MHz）移植中
+- **分层架构**：驱动层 → 设备层 → 应用层，禁止跨层调用 HAL
+- **RTOS**：FreeRTOS + CMSIS-RTOS2 抽象接口，互斥锁保护共享数据
+- **实时调试**：SEGGER SystemView 任务切换与中断时序可视化（J-Link RTT）
+- **多构建系统**：Keil MDK (AC6) / GCC + CMake / EIDE (VSCode)
+- **通信协议**：Modbus RTU 从机（基于 nanoMODBUS）
+- **外设驱动**：GPIO、UART（DMA + 环形缓冲区 + 空闲中断）、ADC（DMA 连续采样 + 数字滤波）
+- **通用组件**：环形缓冲区、数字滤波器（MAF / WMAF）
+
+## 平台支持状态
+
+| 平台 | 芯片 | 内核 | 驱动层 | 设备层 | 应用层 |
+|------|------|------|--------|--------|--------|
+| STM32H750VBT6 | Cortex-M7 | 480MHz | 完成 | 完成 | 完成 |
+| STM32F103RCT6 | Cortex-M3 | 72MHz | 移植中 | 待启用 | 待启用 |
+
+> F103 当前仅完成系统初始化与 SystemView 集成，外设驱动（GPIO/UART/ADC）待实现。
 
 ## 目录结构
 
 ```
 .
-├── mcu/                          # MCU 相关文件
-│   └── stm32h750vbt6/            # STM32H750 CMSIS 和 HAL 库
+├── mcu/                          # MCU HAL 库与启动文件
+│   ├── stm32h750vbt6/            # H750 平台支持包（HAL, CMSIS, 链接脚本, 启动文件）
+│   └── stm32f103rct6/            # F103 平台支持包
 ├── project/
 │   ├── ide/                      # IDE 工程文件
-│   │   ├── keil/                 # Keil MDK 工程
-│   │   ├── gcc/                  # GCC 工具链脚本
-│   │   └── eide/                 # EIDE 工程
-│   ├── Middlewares/              # 第三方中间件
-│   │   └── Third_Party/
-│   │       ├── FreeRTOS/         # FreeRTOS 内核
-│   │       ├── CMSIS-FreeRTOS/   # CMSIS-RTOS2 接口
-│   │       ├── nanoMODBUS/       # Modbus 协议栈
-│   │       └── Printf/           # 轻量级 printf 库
-│   └── usr/                      # 用户代码
-│       ├── app/                  # 应用层
-│       ├── device/               # 设备层（LED、继电器、Modbus）
-│       ├── drivers/              # 驱动层（GPIO、UART、ADC）
-│       ├── common/               # 通用组件（滤波器、环形缓冲区）
-│       ├── core/                 # 核心文件（启动、中断、系统调用）
-│       └── inc/                  # 配置头文件
-└── .codex/                       # Codex 技能库
-    └── skills/
-        ├── freertos-task-design/ # FreeRTOS 任务设计技能
-        └── stm32h7-driver-dev/   # STM32H7 驱动开发技能
+│   │   ├── keil/                 # Keil MDK 工程 (Template.uvprojx)
+│   │   ├── gcc/scripts/cmake/    # GCC 交叉编译工具链文件
+│   │   └── eide/                 # EIDE (VSCode) 工程
+│   ├── Middlewares/Third_Party/  # 第三方中间件
+│   │   ├── FreeRTOS/             # FreeRTOS 内核（heap_4）
+│   │   ├── CMSIS-FreeRTOS/       # CMSIS-RTOS2 适配层
+│   │   ├── CMSIS_5/              # CMSIS 5 头文件
+│   │   ├── SystemView/           # SEGGER 实时跟踪
+│   │   ├── nanoMODBUS/           # Modbus RTU 协议栈
+│   │   └── Printf/              # 轻量级 printf 库
+│   └── usr/                      # 用户应用代码
+│       ├── app/                  # 应用层（任务入口, 采样, Modbus 映射）
+│       ├── device/               # 设备抽象层（LED, Relay, Modbus）
+│       ├── drivers/              # 硬件驱动抽象接口与平台实现
+│       │   ├── stm32h750vbt6/    # H750 驱动实现
+│       │   └── stm32f103rct6/    # F103 驱动实现（移植中）
+│       ├── common/               # 通用组件（滤波器, 环形缓冲区）
+│       ├── core/                 # 系统核心（中断向量, HAL MSP, syscalls）
+│       └── inc/                  # 平台配置头文件（FreeRTOSConfig 等）
+└── .vscode/                      # VSCode 调试与构建配置
 ```
 
 ## 快速开始
 
 ### 环境要求
 
-**Keil MDK 开发**
-- Keil MDK 5.36+
-- ARM Compiler 6
-- J-Link 或 ST-Link 调试器
+| 构建方式 | 工具 |
+|---------|------|
+| Keil MDK | MDK 5.36+, ARM Compiler 6, J-Link 或 ST-Link |
+| GCC/CMake | CMake 3.20+, arm-none-eabi-gcc, OpenOCD 或 J-Link GDB Server |
+| EIDE | VSCode + EIDE 插件, arm-none-eabi-gcc |
 
-**GCC/CMake 开发**
-- CMake 3.20+
-- ARM GCC 工具链（arm-none-eabi-gcc）
-- OpenOCD 或 J-Link GDB Server
+### 编译
 
-### 编译方法
-
-#### 使用 Keil MDK
+#### Keil MDK
 
 1. 打开 `project/ide/keil/Template.uvprojx`
 2. 选择目标平台（STM32H750 或 STM32F103）
-3. 编译并下载到目标板
+3. 编译并下载
 
-#### 使用 CMake + GCC
+#### CMake + GCC
 
 ```bash
 cd project/usr
 mkdir build && cd build
+
+# 默认编译 H750
 cmake ..
+make -j4
+
+# 编译 F103
+cmake -DPLATFORM=stm32f103rct6 ..
 make -j4
 ```
 
-生成的文件位于 `build/output/` 目录：
-- `Template.elf` - ELF 可执行文件
-- `Template.hex` - HEX 烧录文件
-- `Template.bin` - BIN 烧录文件
-- `Template.map` - 链接映射文件
+生成文件位于 `build/output/`：
+- `Template.elf` — ELF 可执行文件
+- `Template.hex` — HEX 烧录文件
+- `Template.bin` — BIN 烧录文件
+- `Template.map` — 链接映射文件
 
-### 烧录程序
+### 烧录与调试
 
-**使用 OpenOCD**
+项目预配置了 4 种 VSCode 调试方案（Cortex-Debug 插件）：
+
+| 配置 | 调试器 | 目标 |
+|------|--------|------|
+| J-Link H750 | SEGGER J-Link GDB Server | STM32H750VB |
+| J-Link F103 | SEGGER J-Link GDB Server | STM32F103RC |
+| OpenOCD ST-Link H750 | OpenOCD | STM32H750VB |
+| OpenOCD ST-Link F103 | OpenOCD | STM32F103RC |
+
+命令行烧录：
+
 ```bash
+# OpenOCD
 openocd -f interface/jlink.cfg -f target/stm32h7x.cfg \
   -c "program build/output/Template.elf verify reset exit"
-```
 
-**使用 J-Link**
-```bash
+# J-Link Commander
 JLinkExe -device STM32H750VB -if SWD -speed 4000 \
   -CommanderScript flash.jlink
 ```
 
-## 应用示例
+## 架构设计
 
-当前示例实现了以下功能：
+```
+┌─────────────────────────────────────────────┐
+│  App Layer        (app/)                    │
+│  任务逻辑、数据采集、Modbus 寄存器映射       │
+├─────────────────────────────────────────────┤
+│  Device Layer     (device/)                 │
+│  LED、Relay、Modbus 设备抽象                │
+├─────────────────────────────────────────────┤
+│  Driver Layer     (drivers/)                │
+│  GPIO、UART、ADC 统一接口 + 平台实现        │
+├─────────────────────────────────────────────┤
+│  HAL Layer        (mcu/)                    │
+│  STM32 HAL 库、CMSIS、启动文件              │
+└─────────────────────────────────────────────┘
+```
 
-### 1. LED 闪烁任务
-- 500ms 周期闪烁
-- 演示基本 GPIO 驱动和 FreeRTOS 任务
+约束规则：
+- App 层只能调用 Device 层、Common 组件和 CMSIS-RTOS2 接口
+- Device 层只能通过 Driver 层抽象接口访问硬件
+- 禁止 App/Device 层直接包含 `stm32*.h` 或调用 `HAL_*` 函数
 
-### 2. Modbus RTU 从机
-- 双串口 Modbus 从机（UART1/UART2）
+## SEGGER SystemView 实时调试
+
+项目深度集成 SystemView，通过 J-Link RTT 实现零开销任务跟踪。
+
+使用方法：
+1. J-Link 连接目标板
+2. 启动 SystemView 桌面软件
+3. Target → Start Recording
+4. 实时查看任务甘特图、CPU 占用率、中断时序
+
+配置入口：`main.c` 中 `SEGGER_SYSVIEW_Conf()` + `SEGGER_SYSVIEW_Start()`
+
+## 应用示例（H750 平台）
+
+### LED 闪烁任务
+- 500ms 周期闪烁，演示 GPIO 驱动 + FreeRTOS 任务调度
+
+### Modbus RTU 从机
+- 双串口从机（UART1 RS232 / UART2 RS485）
 - 从机地址：145
-- 保持寄存器：100-199（共 100 个）
+- 保持寄存器：地址 100-199（共 100 个）
 - 支持功能码 0x03（读保持寄存器）
 
-**测试命令（Modbus Poll）**
-```
-从机地址: 145
-功能码: 03 (Read Holding Registers)
-起始地址: 100
-数量: 10
-```
-
-### 3. ADC 采样与滤波
-- 双通道 ADC（ADC1/ADC2）
-- DMA 连续采样
-- 两级数字滤波：
-  - 一级：移动平均滤波（MAF）
-  - 二级：加权移动平均滤波（WMAF）
-- 串口输出原始值和滤波值
+### ADC 采样与滤波
+- 双通道 ADC（ADC1/ADC2），DMA 连续采样
+- 两级数字滤波：MAF（移动平均）→ WMAF（加权移动平均）
+- 互斥锁保护采样数据与 Modbus 寄存器的一致性
 
 ## 驱动层 API
 
-### GPIO 驱动
+### GPIO
 ```c
 void gpio_init(gpio_id_t id);
 void gpio_set(gpio_id_t id);
@@ -134,7 +177,7 @@ void gpio_toggle(gpio_id_t id);
 uint8_t gpio_read(gpio_id_t id);
 ```
 
-### UART 驱动
+### UART
 ```c
 int uart_init(uart_id_t id, uint8_t *buffer, size_t size);
 int uart_send(uart_id_t id, const uint8_t *data, size_t len);
@@ -142,7 +185,7 @@ int uart_receive(uart_id_t id, uint8_t *data, size_t len, uint32_t timeout);
 size_t uart_available(uart_id_t id);
 ```
 
-### ADC 驱动
+### ADC
 ```c
 int adc_init(adc_id_t id);
 int adc_start_dma(adc_id_t id);
@@ -152,7 +195,7 @@ size_t adc_get_dma_length(adc_id_t id);
 
 ## 设备层 API
 
-### LED 设备
+### LED
 ```c
 void led_init(led_id_t id);
 void led_on(led_id_t id);
@@ -160,95 +203,81 @@ void led_off(led_id_t id);
 void led_toggle(led_id_t id);
 ```
 
-### 继电器设备
+### 继电器
 ```c
 void relay_init(relay_id_t id);
 void relay_on(relay_id_t id);
 void relay_off(relay_id_t id);
 ```
 
-### Modbus 设备
+### Modbus
 ```c
-void modbus_init(modbus_dev_t *dev, uart_id_t uart, uint8_t addr, 
+void modbus_init(modbus_dev_t *dev, uart_id_t uart, uint8_t addr,
                  uint16_t *regs, uint16_t start, uint16_t count);
 void modbus_poll(modbus_dev_t *dev);
 void modbus_set_byte_timeout(modbus_dev_t *dev, uint32_t timeout_ms);
 void modbus_set_read_timeout(modbus_dev_t *dev, uint32_t timeout_ms);
 ```
 
-## 代码规范
-
-本项目遵循 **BARR-C 嵌入式编码标准**，详见 `.kiro/steering/code-style.md`
-
-### 关键规范
-- 关键字与括号无空格：`if(condition)`
-- 左大括号换行
-- 2 空格缩进
-- 函数命名：
-  - 驱动层/设备层：小写+下划线（`uart_init`, `led_toggle`）
-  - 系统层：`DRV_` 前缀（`DRV_System_Init`）
-- 全局变量前缀：`g_`
-- 静态变量前缀：`s_`
-- 类型定义后缀：`_t`（`uart_desc_t`, `adc_desc_t`）
-- Doxygen 注释格式
-
 ## 移植指南
 
-### 添加新 MCU 支持
+### 添加新 MCU 平台
 
-1. 在 `mcu/` 下添加新 MCU 的 HAL 库
-2. 在 `project/usr/drivers/` 下创建平台驱动实现
-3. 在 `project/usr/core/` 下添加启动文件和中断向量表
-4. 在 `project/usr/inc/` 下添加配置头文件
-5. 更新 `CMakeLists.txt` 中的 `PLATFORM` 选项
+1. `mcu/` 下添加 HAL 库、启动文件、链接脚本
+2. `project/usr/drivers/<platform>/` 实现驱动接口（board.c, drv_gpio.c, drv_uart.c, drv_adc.c）
+3. `project/usr/core/<platform>/` 添加中断处理与 HAL MSP
+4. `project/usr/inc/<platform>/` 添加 FreeRTOSConfig.h 等配置
+5. `project/usr/CMakeLists.txt` 中添加 PLATFORM 选项与对应配置
 
 ### 添加新外设驱动
 
-1. 在 `project/usr/drivers/` 下创建驱动头文件（如 `drv_spi.h`）
-2. 在 `project/usr/drivers/<platform>/` 下实现平台相关代码
-3. 在 `board.c` 中定义硬件资源
-4. 更新 `CMakeLists.txt` 添加源文件
+1. `project/usr/drivers/` 创建驱动头文件（如 `drv_spi.h`）定义抽象接口
+2. `project/usr/drivers/<platform>/` 实现平台相关代码
+3. `board.c` / `board.h` 中定义硬件资源描述符
+4. 更新 CMakeLists.txt 添加源文件
+
+## 代码规范
+
+本项目遵循 BARR-C 嵌入式编码标准，详见 `agents.md`。
+
+核心规则：
+- 2 空格缩进
+- `if(condition)` 关键字与括号无空格
+- 左大括号换行
+- 全局变量 `g_` 前缀，静态变量 `s_` 前缀，类型 `_t` 后缀
+- 驱动/设备层：小写下划线命名（`uart_init`, `led_toggle`）
+- 系统层：`DRV_` 前缀（`DRV_System_Init`）
+- Doxygen `@` 风格注释
 
 ## 常见问题
 
-### Q: 如何修改串口波特率？
-A: 编辑 `project/usr/drivers/<platform>/board.c` 中的 `uart_desc` 结构体：
-```c
-static struct uart_desc s_uart2_rs485 = {
-  .instance = USART2,
-  .baudrate = 115200  // 修改此处
-};
-```
+**Q: 如何切换编译目标平台？**
 
-### Q: 如何增加 FreeRTOS 任务栈大小？
-A: 修改任务创建时的 `stack_size` 参数（单位：字，1 字 = 4 字节）：
+CMake：`cmake -DPLATFORM=stm32f103rct6 ..`
+Keil：在工程中切换 Target
+
+**Q: 如何修改串口波特率？**
+
+编辑 `project/usr/drivers/<platform>/board.c` 中的 `uart_desc` 结构体 `baudrate` 字段。
+
+**Q: 如何增加 FreeRTOS 任务栈？**
+
+修改任务属性中的 `stack_size`（单位：字节）：
 ```c
 const osThreadAttr_t task_attributes = {
-  .stack_size = 512 * 4,  // 2KB 栈空间
+  .stack_size = 512 * 4,  // 2KB
 };
 ```
 
-### Q: 如何调整 ADC 采样率？
-A: 修改 `project/usr/drivers/<platform>/drv_adc.c` 中的 ADC 时钟分频和采样时间配置。
+**Q: 如何调整 ADC 采样率？**
+
+修改 `project/usr/drivers/<platform>/drv_adc.c` 中的 ADC 时钟分频和采样时间。
 
 ## 许可证
 
-本项目采用 MIT 许可证，详见 LICENSE 文件。
-
-## 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-提交代码前请确保：
-1. 遵循项目代码规范
-2. 添加必要的 Doxygen 注释
-3. 测试通过所有目标平台
+MIT License
 
 ## 联系方式
 
 - 作者：Dylan
 - 项目地址：https://github.com/jingwanbadiandalaohu/QP-Frame-STM32
-
----
-
-**最后更新：2026-02-03**
