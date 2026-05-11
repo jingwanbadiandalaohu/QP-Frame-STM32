@@ -7,7 +7,7 @@ set(__PROJ_NAME__ "Template" CACHE STRING "Project name")
 set(__TOOLCHAIN__ "ARMGCC" CACHE STRING "Toolchain type")
 
 # 目标平台
-set(PLATFORM "stm32f103rct6" CACHE STRING "Target platform")
+set(PLATFORM "stm32h750vbt6" CACHE STRING "Target platform")
 set_property(CACHE PLATFORM PROPERTY STRINGS "stm32h750vbt6" "stm32f103rct6")
 
 # 输出路径配置
